@@ -1,0 +1,178 @@
+// =============================================================
+// prisma/schema.prisma
+// TransitIQ – Database Schema
+// Models: User, Driver, Bus, Route, Stop, Trip
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  DRIVER
+  PASSENGER
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+enum BusStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum RouteStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_REVIEW
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// User – base authentication entity
+// ─────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(PASSENGER)
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  driver    Driver?
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Driver – linked 1:1 to a User
+// ─────────────────────────────────────────────
+
+model Driver {
+  id           String       @id @default(uuid())
+  userId       String       @unique
+  licenseNo    String       @unique
+  experience   Int          @default(0)    // years of experience
+  status       DriverStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trips        Trip[]
+  assignedBus  Bus?         @relation(fields: [assignedBusId], references: [id])
+  assignedBusId String?
+
+  @@map("drivers")
+}
+
+// ─────────────────────────────────────────────
+// Bus – physical vehicle
+// ─────────────────────────────────────────────
+
+model Bus {
+  id        String    @id @default(uuid())
+  regNo     String    @unique     // registration / plate number
+  model     String
+  capacity  Int                   // passenger capacity
+  status    BusStatus @default(ACTIVE)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  drivers   Driver[]
+  trips     Trip[]
+
+  @@map("buses")
+}
+
+// ─────────────────────────────────────────────
+// Route – a transit route with stops
+// ─────────────────────────────────────────────
+
+model Route {
+  id            String      @id @default(uuid())
+  name          String
+  routeNo       String      @unique
+  startLocation String
+  endLocation   String
+  distance      Float?      // km
+  duration      Int?        // minutes (estimated)
+  status        RouteStatus @default(ACTIVE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  stops         Stop[]
+  trips         Trip[]
+
+  @@map("routes")
+}
+
+// ─────────────────────────────────────────────
+// Stop – an individual stop along a route
+// ─────────────────────────────────────────────
+
+model Stop {
+  id        String   @id @default(uuid())
+  name      String
+  routeId   String
+  sequence  Int                    // order of stop in the route
+  landmark  String?                // nearby landmark for reference
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, sequence])
+  @@map("stops")
+}
+
+// ─────────────────────────────────────────────
+// Trip – a single journey on a route
+// ─────────────────────────────────────────────
+
+model Trip {
+  id             String     @id @default(uuid())
+  routeId        String
+  driverId       String
+  busId          String
+  status         TripStatus @default(SCHEDULED)
+  scheduledStart DateTime
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  route          Route      @relation(fields: [routeId], references: [id])
+  driver         Driver     @relation(fields: [driverId], references: [id])
+  bus            Bus        @relation(fields: [busId], references: [id])
+
+  @@map("trips")
+}
