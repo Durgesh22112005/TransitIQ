@@ -1,49 +1,41 @@
-// =============================================================
-// src/constants/theme.js  – Driver App Design System
-// =============================================================
-
 export const COLORS = {
-  // Primary brand palette
-  primary:      '#1A56FF',   // electric blue
-  primaryDark:  '#0F3BC2',
-  primaryLight: '#6B93FF',
+  primary:      '#2563EB',
+  primaryDark:  '#1D4ED8',
+  primaryLight: '#60A5FA',
+  primaryBg:    '#1E2A4A',
 
-  // Accent
-  accent:       '#00D4AA',   // teal accent
-  accentDark:   '#009E7F',
-
-  // Semantic
-  success:      '#22C55E',
+  success:      '#10B981',
+  successBg:    '#0A2E1E',
   warning:      '#F59E0B',
+  warningBg:    '#2A200A',
   danger:       '#EF4444',
+  dangerBg:     '#2E0A0A',
   info:         '#3B82F6',
 
-  // Neutrals
-  background:   '#0A0F1E',   // deep navy dark
-  surface:      '#131929',
-  surfaceLight: '#1E2A45',
-  border:       '#2A3A5C',
+  background:   '#0A0E1A',
+  surface:      '#131826',
+  surfaceLight: '#1A2035',
+  border:       '#252D45',
+  borderLight:  '#1E2640',
 
-  // Text
-  textPrimary:  '#FFFFFF',
+  textPrimary:  '#F1F5F9',
   textSecondary:'#94A3B8',
   textMuted:    '#64748B',
+  textWhite:    '#FFFFFF',
 
-  // Gradient stops
-  gradientStart:'#1A56FF',
-  gradientEnd:  '#00D4AA',
+  tabInactive:  '#475569',
+  tabActive:    '#60A5FA',
 };
 
 export const TYPOGRAPHY = {
-  fontFamily: 'System',
   sizes: {
-    xs:   10,
-    sm:   12,
-    md:   14,
-    lg:   16,
-    xl:   18,
-    '2xl':22,
-    '3xl':28,
+    xs:   11,
+    sm:   13,
+    md:   15,
+    lg:   17,
+    xl:   20,
+    '2xl':24,
+    '3xl':30,
     '4xl':36,
   },
   weights: {
@@ -51,7 +43,7 @@ export const TYPOGRAPHY = {
     medium:  '500',
     semibold:'600',
     bold:    '700',
-    black:   '900',
+    black:   '800',
   },
 };
 
@@ -69,23 +61,31 @@ export const RADIUS = {
   sm:   8,
   md:   12,
   lg:   16,
-  xl:   24,
+  xl:   20,
+  '2xl':24,
   full: 9999,
 };
 
 export const SHADOWS = {
   card: {
-    shadowColor:   '#1A56FF',
+    shadowColor: '#000000',
     shadowOffset:  { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius:  12,
-    elevation:     8,
+    elevation:     5,
   },
   elevated: {
-    shadowColor:   '#000000',
+    shadowColor: '#000000',
     shadowOffset:  { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius:  16,
-    elevation:     12,
+    elevation:     8,
+  },
+  button: {
+    shadowColor: '#2563EB',
+    shadowOffset:  { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius:  10,
+    elevation:     5,
   },
 };

@@ -1,167 +1,254 @@
-// =============================================================
-// src/screens/ProfileScreen.jsx – Driver App
-// =============================================================
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
-import StatusBadge from '../components/StatusBadge';
+import { authAPI } from '../services/api.service';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import { LoadingSpinner } from '../components/LoadingOverlay';
+import ErrorState from '../components/ErrorState';
 
-// Mock driver details (will come from API /auth/me in implementation)
-const MOCK_DRIVER = {
-  licenseNo:  'KA-DL-2019-0042317',
-  experience: 7,
-  status:     'ACTIVE',
-  busRegNo:   'MH 12 AB 1234',
-  busModel:   'Volvo B9R',
-  joiningDate:'2019-03-15',
-};
-
-const ProfileScreen = ({ navigation }) => {
-  const { user, logout } = useAuth();
-
-  const InfoRow = ({ icon, label, value }) => (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoIcon}>{icon}</Text>
-      <View style={styles.infoTexts}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value}</Text>
-      </View>
+const InfoRow = ({ icon, label, value }) => (
+  <View style={styles.infoRow}>
+    <Text style={styles.infoIcon}>{icon}</Text>
+    <View style={styles.infoContent}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value || '—'}</Text>
     </View>
-  );
+  </View>
+);
+
+const ProfileScreen = () => {
+  const { user, logout } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setError(null);
+        const response = await authAPI.getMe();
+        setProfile(response?.data || null);
+      } catch (err) {
+        setError(err.message || 'Failed to load profile.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const driver = profile?.driver;
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorState message={error} onRetry={() => { setLoading(true); setError(null); }} />;
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[COLORS.primaryDark, '#0A1A50']}
-        style={styles.header}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Profile</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
-
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Avatar section */}
-        <View style={styles.avatarSection}>
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.accent]}
-            style={styles.avatarGradient}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.avatarText}>
-              {user?.name?.[0]?.toUpperCase() || 'D'}
-            </Text>
-          </LinearGradient>
-          <Text style={styles.profileName}>{user?.name || 'Driver Name'}</Text>
-          <Text style={styles.profileEmail}>{user?.email || 'driver@transitiq.com'}</Text>
-          <StatusBadge
-            label={MOCK_DRIVER.status}
-            color={MOCK_DRIVER.status === 'ACTIVE' ? COLORS.success : COLORS.warning}
+        <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.header}>
+          <View style={styles.avatarSection}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+              style={styles.avatarGradient}
+            >
+              <Text style={styles.avatarText}>
+                {profile?.name?.[0]?.toUpperCase() || 'D'}
+              </Text>
+            </LinearGradient>
+            <Text style={styles.profileName}>{profile?.name || 'Driver'}</Text>
+            <Text style={styles.profileEmail}>{profile?.email || ''}</Text>
+            {driver && (
+              <View style={styles.driverIdBadge}>
+                <Text style={styles.driverIdText}>ID: {driver.id?.slice(0, 8)?.toUpperCase() || '—'}</Text>
+              </View>
+            )}
+          </View>
+        </LinearGradient>
+
+        <Card padding={SPACING.md}>
+          <Text style={styles.cardTitle}>Personal Information</Text>
+          <InfoRow icon="👤" label="Full Name" value={profile?.name} />
+          <InfoRow icon="📧" label="Email" value={profile?.email} />
+          <InfoRow icon="📱" label="Phone" value={profile?.phone || 'Not provided'} />
+          <InfoRow icon="🎂" label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'} />
+        </Card>
+
+        {driver && (
+          <>
+            <Card padding={SPACING.md}>
+              <Text style={styles.cardTitle}>Driver Details</Text>
+              <InfoRow icon="🪪" label="License No" value={driver.licenseNo} />
+              <InfoRow icon="📅" label="Experience" value={driver.experience ? `${driver.experience} years` : '—'} />
+              <View style={styles.statusRow}>
+                <Text style={styles.statusLabel}>Status</Text>
+                <View style={[styles.statusBadge, {
+                  backgroundColor: driver.status === 'ACTIVE' ? COLORS.successBg : COLORS.warningBg,
+                  borderColor: driver.status === 'ACTIVE' ? COLORS.success + '40' : COLORS.warning + '40',
+                }]}>
+                  <View style={[styles.statusDot, {
+                    backgroundColor: driver.status === 'ACTIVE' ? COLORS.success : COLORS.warning,
+                  }]} />
+                  <Text style={[styles.statusText, {
+                    color: driver.status === 'ACTIVE' ? COLORS.success : COLORS.warning,
+                  }]}>{driver.status}</Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card padding={SPACING.md}>
+              <Text style={styles.cardTitle}>Assigned Bus</Text>
+              {driver.assignedBus ? (
+                <>
+                  <InfoRow icon="🚌" label="Registration" value={driver.assignedBus.regNo} />
+                  <InfoRow icon="🏷️" label="Model" value={driver.assignedBus.model} />
+                  <InfoRow icon="👥" label="Capacity" value={`${driver.assignedBus.capacity} seats`} />
+                </>
+              ) : (
+                <Text style={styles.mutedText}>No bus assigned</Text>
+              )}
+            </Card>
+          </>
+        )}
+
+        <Card padding={SPACING.md}>
+          <Text style={styles.cardTitle}>Account</Text>
+          <InfoRow icon="👤" label="Role" value={profile?.role || user?.role || '—'} />
+        </Card>
+
+        <View style={styles.logoutSection}>
+          <Button
+            title="Sign Out"
+            onPress={handleLogout}
+            variant="danger"
+            icon="🚪"
           />
         </View>
-
-        {/* Personal info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Personal Information</Text>
-          <InfoRow icon="👤" label="Full Name"   value={user?.name  || '—'} />
-          <InfoRow icon="📧" label="Email"       value={user?.email || '—'} />
-          <InfoRow icon="📱" label="Phone"       value={user?.phone || 'Not provided'} />
-          <InfoRow icon="🎂" label="Joined"      value={new Date(MOCK_DRIVER.joiningDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })} />
-        </View>
-
-        {/* Driver info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Driver Details</Text>
-          <InfoRow icon="🪪" label="License No"       value={MOCK_DRIVER.licenseNo} />
-          <InfoRow icon="📅" label="Experience"       value={`${MOCK_DRIVER.experience} years`} />
-          <InfoRow icon="🟢" label="Status"           value={MOCK_DRIVER.status} />
-        </View>
-
-        {/* Assigned bus */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Assigned Bus</Text>
-          <InfoRow icon="🚌" label="Registration No" value={MOCK_DRIVER.busRegNo} />
-          <InfoRow icon="🏷️" label="Bus Model"       value={MOCK_DRIVER.busModel} />
-        </View>
-
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>🚪  Sign Out</Text>
-        </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  safe: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: SPACING['3xl'] },
 
   header: {
-    paddingTop: 56, paddingBottom: SPACING.lg,
-    paddingHorizontal: SPACING.lg,
-    flexDirection: 'row', alignItems: 'center',
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING['2xl'],
+    borderBottomLeftRadius: RADIUS['2xl'],
+    borderBottomRightRadius: RADIUS['2xl'],
   },
-  backBtn:     { padding: SPACING.xs, marginRight: SPACING.sm },
-  backArrow:   { fontSize: 24, color: COLORS.textPrimary },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: TYPOGRAPHY.sizes.xl, fontWeight: TYPOGRAPHY.weights.bold, color: COLORS.textPrimary },
-
-  scroll:       { flex: 1 },
-  scrollContent:{ padding: SPACING.lg, gap: SPACING.md, paddingBottom: SPACING['3xl'] },
-
-  avatarSection: { alignItems: 'center', marginBottom: SPACING.md },
+  avatarSection: { alignItems: 'center', gap: SPACING.sm },
   avatarGradient: {
-    width: 100, height: 100, borderRadius: 50,
+    width: 96, height: 96, borderRadius: 48,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: SPACING.md,
-    ...SHADOWS.elevated,
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
   },
-  avatarText:   { fontSize: TYPOGRAPHY.sizes['3xl'], fontWeight: TYPOGRAPHY.weights.black, color: COLORS.textPrimary },
-  profileName:  { fontSize: TYPOGRAPHY.sizes['2xl'], fontWeight: TYPOGRAPHY.weights.bold, color: COLORS.textPrimary },
-  profileEmail: { fontSize: TYPOGRAPHY.sizes.md, color: COLORS.textSecondary, marginBottom: SPACING.sm },
+  avatarText: {
+    fontSize: TYPOGRAPHY.sizes['3xl'],
+    fontWeight: TYPOGRAPHY.weights.black,
+    color: COLORS.textWhite,
+  },
+  profileName: {
+    fontSize: TYPOGRAPHY.sizes['2xl'],
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.textWhite,
+  },
+  profileEmail: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  driverIdBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: SPACING.sm + 4,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full,
+    marginTop: SPACING.xs,
+  },
+  driverIdText: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textWhite,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    letterSpacing: 0.5,
+  },
 
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.card,
-    gap: SPACING.md,
-  },
   cardTitle: {
     fontSize: TYPOGRAPHY.sizes.sm,
-    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontWeight: TYPOGRAPHY.weights.bold,
     color: COLORS.primary,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
     marginBottom: SPACING.xs,
   },
 
-  infoRow:    { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-  infoIcon:   { fontSize: 22, width: 32 },
-  infoTexts:  { flex: 1, borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingBottom: SPACING.sm },
-  infoLabel:  { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
-  infoValue:  { fontSize: TYPOGRAPHY.sizes.md, color: COLORS.textPrimary, fontWeight: TYPOGRAPHY.weights.medium, marginTop: 2 },
-
-  logoutBtn: {
-    backgroundColor: COLORS.danger + '22',
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
+  infoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+  },
+  infoIcon: { fontSize: 18, width: 28 },
+  infoContent: { flex: 1 },
+  infoLabel: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: COLORS.textPrimary,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    marginTop: 1,
+  },
+  mutedText: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+  },
+
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  statusLabel: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm + 2,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.danger + '55',
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: TYPOGRAPHY.sizes.xs, fontWeight: TYPOGRAPHY.weights.semibold },
+
+  logoutSection: {
+    padding: SPACING.lg,
     marginTop: SPACING.sm,
   },
-  logoutText: { color: COLORS.danger, fontWeight: TYPOGRAPHY.weights.semibold, fontSize: TYPOGRAPHY.sizes.md },
 });
 
 export default ProfileScreen;

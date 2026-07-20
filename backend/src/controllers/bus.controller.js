@@ -14,7 +14,8 @@ const BUS_SELECT = {
   status: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { drivers: true } },
+  drivers: { select: { id: true, licenseNo: true, status: true } },
+  _count: { select: { trips: true } },
 };
 
 // GET /api/v1/buses

@@ -65,4 +65,10 @@ export const routeAPI = {
   getById: (id)     => api.get(`/routes/${id}`),
 };
 
+export const tripAPI = {
+  getCurrent: ()     => api.get('/trips/current'),
+  start:      (id)   => api.post(`/trips/${id}/start`),
+  end:        (id)   => api.post(`/trips/${id}/end`),
+};
+
 export default api;

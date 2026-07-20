@@ -102,4 +102,29 @@ const getMe = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, getMe };
+// ─────────────────────────────────────────────
+// GET /api/v1/auth/users  (admin: list users by role)
+// ─────────────────────────────────────────────
+const getUsers = async (req, res, next) => {
+  try {
+    const { role } = req.query;
+    const where = role ? { role } : {};
+
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true, name: true, email: true, role: true, phone: true,
+        driver: {
+          select: { id: true, licenseNo: true, status: true, assignedBusId: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return sendSuccess(res, users);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, getMe, getUsers };

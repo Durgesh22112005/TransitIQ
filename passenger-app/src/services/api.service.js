@@ -46,4 +46,9 @@ export const stopAPI = {
   getAll: (params) => api.get('/stops', { params }),
 };
 
+export const tripAPI = {
+  getActive: () => api.get('/trips/active'),
+  getById:   (id) => api.get(`/trips/${id}`),
+};
+
 export default api;

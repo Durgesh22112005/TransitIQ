@@ -66,7 +66,7 @@ const RegisterScreen = ({ navigation }) => {
         phone: form.phone.trim() || undefined,
         role: 'DRIVER',
       });
-      navigation.replace('Dashboard');
+      navigation.replace('MainTabs');
     } catch (err) {
       Alert.alert('Registration Failed', err.message);
     } finally {

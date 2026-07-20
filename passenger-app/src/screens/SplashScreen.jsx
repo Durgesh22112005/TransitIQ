@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 const SplashScreen = ({ navigation }) => {
   const { user, loading } = useAuth();
 
+  const [animDone, setAnimDone] = React.useState(false);
   const scale    = useRef(new Animated.Value(0)).current;
   const opacity  = useRef(new Animated.Value(0)).current;
   const slideUp  = useRef(new Animated.Value(40)).current;
@@ -23,12 +24,20 @@ const SplashScreen = ({ navigation }) => {
       ]),
       Animated.spring(slideUp, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
     ]).start(() => {
-      const t = setTimeout(() => {
-        if (!loading) navigation.replace(user ? 'Home' : 'Login');
-      }, 900);
-      return () => clearTimeout(t);
+      setAnimDone(true);
     });
-  }, [loading]);
+
+    const fallback = setTimeout(() => {
+      setAnimDone(true);
+    }, 1200);
+    return () => clearTimeout(fallback);
+  }, []);
+
+  useEffect(() => {
+    if (animDone && !loading) {
+      navigation.replace(user ? 'Home' : 'Login');
+    }
+  }, [animDone, loading, user, navigation]);
 
   return (
     <LinearGradient

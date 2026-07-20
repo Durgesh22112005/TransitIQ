@@ -13,8 +13,9 @@ import { COLORS } from '../constants/theme';
 import SplashScreen      from '../screens/SplashScreen';
 import LoginScreen       from '../screens/LoginScreen';
 import RegisterScreen    from '../screens/RegisterScreen';
-import HomeScreen        from '../screens/HomeScreen';
-import RouteSearchScreen from '../screens/RouteSearchScreen';
+import HomeScreen          from '../screens/HomeScreen';
+import RouteSearchScreen   from '../screens/RouteSearchScreen';
+import TripTrackerScreen   from '../screens/TripTrackerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,7 +37,8 @@ const AppNavigator = () => {
         <Stack.Screen name="Login"        component={LoginScreen} />
         <Stack.Screen name="Register"     component={RegisterScreen} />
         <Stack.Screen name="Home"         component={HomeScreen} />
-        <Stack.Screen name="RouteSearch"  component={RouteSearchScreen} />
+        <Stack.Screen name="RouteSearch"   component={RouteSearchScreen} />
+        <Stack.Screen name="TripTracker"   component={TripTrackerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

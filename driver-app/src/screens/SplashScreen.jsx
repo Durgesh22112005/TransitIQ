@@ -14,6 +14,7 @@ const { width, height } = Dimensions.get('window');
 
 const SplashScreen = ({ navigation }) => {
   const { user, loading } = useAuth();
+  const [animDone, setAnimDone] = React.useState(false);
 
   // Animation values
   const logoScale   = useRef(new Animated.Value(0)).current;
@@ -39,15 +40,20 @@ const SplashScreen = ({ navigation }) => {
         toValue: 120, duration: 600, useNativeDriver: false,
       }),
     ]).start(() => {
-      // Wait for auth check then navigate
-      const timer = setTimeout(() => {
-        if (!loading) {
-          navigation.replace(user ? 'Dashboard' : 'Login');
-        }
-      }, 800);
-      return () => clearTimeout(timer);
+      setAnimDone(true);
     });
-  }, [loading]);
+
+    const fallback = setTimeout(() => {
+      setAnimDone(true);
+    }, 1200);
+    return () => clearTimeout(fallback);
+  }, []);
+
+  useEffect(() => {
+    if (animDone && !loading) {
+      navigation.replace(user ? 'MainTabs' : 'Login');
+    }
+  }, [animDone, loading, user, navigation]);
 
   return (
     <LinearGradient

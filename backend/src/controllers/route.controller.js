@@ -16,17 +16,20 @@ const getAllRoutes = async (req, res, next) => {
     if (status) where.status = status;
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { routeNo: { contains: search, mode: 'insensitive' } },
-        { startLocation: { contains: search, mode: 'insensitive' } },
-        { endLocation: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search } },
+        { routeNo: { contains: search } },
+        { startLocation: { contains: search } },
+        { endLocation: { contains: search } },
       ];
     }
 
     const [routes, total] = await prisma.$transaction([
       prisma.route.findMany({
         where,
-        include: { _count: { select: { stops: true } } },
+        include: {
+          stops: { orderBy: { sequence: 'asc' } },
+          _count: { select: { trips: true } },
+        },
         skip,
         take: parseInt(limit),
         orderBy: { routeNo: 'asc' },
@@ -71,6 +74,7 @@ const createRoute = async (req, res, next) => {
 
     const route = await prisma.route.create({
       data: { name, routeNo, startLocation, endLocation, distance, duration, status },
+      include: { stops: { orderBy: { sequence: 'asc' } } },
     });
 
     return sendSuccess(res, route, 'Route created successfully.', 201);
@@ -95,7 +99,11 @@ const updateRoute = async (req, res, next) => {
     if (duration !== undefined) data.duration = duration;
     if (status !== undefined) data.status = status;
 
-    const route = await prisma.route.update({ where: { id: req.params.id }, data });
+    const route = await prisma.route.update({
+      where: { id: req.params.id },
+      data,
+      include: { stops: { orderBy: { sequence: 'asc' } } },
+    });
     return sendSuccess(res, route, 'Route updated successfully.');
   } catch (error) {
     next(error);

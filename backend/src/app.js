@@ -10,21 +10,25 @@ const helmet  = require('helmet');
 const cors    = require('cors');
 const morgan  = require('morgan');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
+
 const authRoutes   = require('./routes/auth.routes');
 const driverRoutes = require('./routes/driver.routes');
 const busRoutes    = require('./routes/bus.routes');
 const routeRoutes  = require('./routes/route.routes');
 const stopRoutes   = require('./routes/stop.routes');
+const tripRoutes   = require('./routes/trip.routes');
 
 const { notFound, globalErrorHandler } = require('./middleware/error.middleware');
 const { ALLOWED_ORIGINS, NODE_ENV } = require('./config/env');
 
 const app = express();
 
-// ─── Security ────────────────────────────────
+// ─── Security ────────────────────────────
 app.use(helmet());
 
-// ─── CORS ─────────────────────────────────────
+// ─── CORS ────────────────────────────────
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -54,6 +58,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ─── Swagger UI ──────────────────────────
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'TransitIQ API Docs',
+}));
+
 // ─── API Routes ───────────────────────────────
 const API = '/api/v1';
 app.use(`${API}/auth`,    authRoutes);
@@ -61,6 +70,7 @@ app.use(`${API}/drivers`, driverRoutes);
 app.use(`${API}/buses`,   busRoutes);
 app.use(`${API}/routes`,  routeRoutes);
 app.use(`${API}/stops`,   stopRoutes);
+app.use(`${API}/trips`,   tripRoutes);
 
 // ─── 404 & Global Error Handler ───────────────
 app.use(notFound);

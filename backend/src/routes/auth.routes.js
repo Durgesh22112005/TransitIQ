@@ -3,10 +3,10 @@
 // =============================================================
 
 const { Router } = require('express');
-const { register, login, getMe } = require('../controllers/auth.controller');
+const { register, login, getMe, getUsers } = require('../controllers/auth.controller');
 const { registerValidator, loginValidator } = require('../validators/auth.validator');
 const { validate } = require('../middleware/validate.middleware');
-const { authenticate } = require('../middleware/auth.middleware');
+const { authenticate, authorise } = require('../middleware/auth.middleware');
 
 const router = Router();
 
@@ -18,5 +18,8 @@ router.post('/login', loginValidator, validate, login);
 
 // GET /api/v1/auth/me  (protected)
 router.get('/me', authenticate, getMe);
+
+// GET /api/v1/auth/users  (admin only)
+router.get('/users', authenticate, authorise('ADMIN'), getUsers);
 
 module.exports = router;
