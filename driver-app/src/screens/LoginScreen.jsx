@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ScrollView, Animated, Alert, Dimensions,
+  ScrollView, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -12,6 +12,32 @@ import Button from '../components/Button';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 const FORM_MAX_WIDTH = 420;
+
+const InputField = ({ label, value, onChangeText, placeholder, error, secure, keyboardType, showPass, onTogglePass, editable }) => (
+  <View style={styles.fieldGroup}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <View style={[styles.inputWrapper, error && styles.inputError]}>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textMuted}
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry={secure && !showPass}
+        keyboardType={keyboardType}
+        autoCapitalize="none"
+        autoCorrect={false}
+        editable={editable}
+      />
+      {secure && (
+        <TouchableOpacity onPress={onTogglePass} style={styles.eyeBtn}>
+          <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+    {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+  </View>
+);
 
 const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
@@ -62,32 +88,6 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  const InputField = ({ label, value, onChange, placeholder, error, secure, keyboardType }) => (
-    <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.inputWrapper, error && styles.inputError]}>
-        <TextInput
-          style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor={COLORS.textMuted}
-          value={value}
-          onChangeText={(t) => { onChange(t); setErrors((e) => ({ ...e, [label.toLowerCase()]: '' })); setLoginError(''); }}
-          secureTextEntry={secure && !showPass}
-          keyboardType={keyboardType}
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!loading}
-        />
-        {secure && (
-          <TouchableOpacity onPress={() => setShowPass((v) => !v)} style={styles.eyeBtn}>
-            <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
-    </View>
-  );
-
   return (
     <LinearGradient colors={[COLORS.background, COLORS.primaryBg]} style={styles.gradient}>
       <KeyboardAvoidingView
@@ -120,19 +120,23 @@ const LoginScreen = ({ navigation }) => {
               <InputField
                 label="Email Address"
                 value={email}
-                onChange={setEmail}
+                onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: '' })); setLoginError(''); }}
                 placeholder="driver@transitiq.com"
                 error={errors.email}
                 keyboardType="email-address"
+                editable={!loading}
               />
 
               <InputField
                 label="Password"
                 value={password}
-                onChange={setPassword}
+                onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: '' })); setLoginError(''); }}
                 placeholder="Enter your password"
                 error={errors.password}
                 secure
+                showPass={showPass}
+                onTogglePass={() => setShowPass((v) => !v)}
+                editable={!loading}
               />
 
               <Button

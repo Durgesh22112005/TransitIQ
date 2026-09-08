@@ -87,7 +87,10 @@ const RouteSearchScreen = ({ navigation, route: navRoute }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Find Routes</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Find Routes</Text>
+          <Text style={styles.headerSub}>{routes.length} routes found</Text>
+        </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
@@ -130,6 +133,7 @@ const RouteSearchScreen = ({ navigation, route: navRoute }) => {
             />
           )}
           ListEmptyComponent={<EmptyState />}
+          ListHeaderComponent={routes.length > 0 ? <Text style={styles.resultsLabel}>{searched ? `Results for "${query || 'All routes'}"` : ''}</Text> : null}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -148,7 +152,9 @@ const styles = StyleSheet.create({
   },
   backBtn:     { padding: SPACING.xs },
   backArrow:   { fontSize: 24, color: COLORS.textPrimary },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: TYPOGRAPHY.sizes.xl, fontWeight: TYPOGRAPHY.weights.bold, color: COLORS.textPrimary },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { fontSize: TYPOGRAPHY.sizes.xl, fontWeight: TYPOGRAPHY.weights.bold, color: COLORS.textPrimary },
+  headerSub:   { fontSize: TYPOGRAPHY.sizes.xs, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
   searchContainer: { padding: SPACING.md, paddingBottom: 0 },
 
@@ -163,6 +169,10 @@ const styles = StyleSheet.create({
   loadingText: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.sizes.md },
 
   listContent: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: SPACING['3xl'] },
+  resultsLabel: {
+    fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textSecondary,
+    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: SPACING.xs,
+  },
 
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: SPACING['3xl'], gap: SPACING.md },
   emptyIcon:  { fontSize: 56 },

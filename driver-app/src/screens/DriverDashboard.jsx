@@ -9,7 +9,7 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api.service';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import TripCard from '../components/TripCard';
 import { LoadingSpinner } from '../components/LoadingOverlay';
 import EmptyState from '../components/EmptyState';
 import tripService from '../services/TripService';
@@ -144,9 +144,15 @@ const DriverDashboard = ({ navigation }) => {
     );
   };
 
+  const handleLiveTracking = () => {
+    navigation.navigate('MainTabs', {
+      screen: 'LiveTracking',
+      params: { tripId: trip.id, driverId: trip.driverId, routeId: trip.routeId, trip },
+    });
+  };
+
   const driver = profile?.driver;
   const hasActiveTrip = trip?.status === 'IN_PROGRESS';
-  const hasScheduledTrip = trip?.status === 'SCHEDULED';
 
   if (loading) {
     return <LoadingSpinner />;
@@ -234,78 +240,51 @@ const DriverDashboard = ({ navigation }) => {
           )}
         </Card>
 
-        <Card padding={SPACING.md}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Current Trip</Text>
-          </View>
-          {trip ? (
-            <>
-              <InfoRow icon="🛣️" label="Route" value={trip.route?.name} />
-              <InfoRow icon="🔢" label="Route No" value={trip.route?.routeNo} />
-              <InfoRow icon="📍" label="From" value={trip.route?.startLocation} />
-              <InfoRow icon="🏁" label="To" value={trip.route?.endLocation} />
-              <InfoRow icon="🚏" label="Stops" value={`${trip.route?.stops?.length || 0} stops`} />
-              {trip.route?.distance && <InfoRow icon="📏" label="Distance" value={`${trip.route.distance} km`} />}
-              {trip.route?.duration && <InfoRow icon="⏱️" label="Est. Duration" value={`${trip.route.duration} min`} />}
-              <View style={styles.tripStatusBadge}>
-                <View style={[styles.statusDot, { backgroundColor: hasActiveTrip ? COLORS.success : COLORS.warning }]} />
-                <Text style={[styles.tripStatusText, { color: hasActiveTrip ? COLORS.success : COLORS.warning }]}>
-                  {trip.status === 'IN_PROGRESS' ? 'Trip In Progress' : 'Scheduled'}
-                </Text>
-              </View>
-            </>
-          ) : (
+        {trip ? (
+          <TripCard
+            trip={trip}
+            onStart={handleStartTrip}
+            onEnd={handleEndTrip}
+            starting={startingTrip}
+          />
+        ) : (
+          <Card padding={SPACING.lg}>
             <EmptyState
               icon="📋"
               title="No Trip Assigned"
               message="You don't have any active trips. Please check with your dispatcher."
             />
-          )}
-        </Card>
+          </Card>
+        )}
 
-        {trip && (
+        {trip && trip.route && (
           <Card padding={SPACING.md}>
             <Text style={styles.cardTitle}>Quick Stats</Text>
             <View style={styles.statsGrid}>
               <StatCard icon="🚌" label="Trips Today" value="3" color={COLORS.primary} />
-              <StatCard icon="📍" label="Distance" value="45 km" color={COLORS.success} />
-              <StatCard icon="⏱️" label="Hours" value="5h 20m" color={COLORS.warning} />
+              <StatCard
+                icon="📍"
+                label="Distance"
+                value={trip.route?.distance ? `${trip.route.distance} km` : '—'}
+                color={COLORS.success}
+              />
+              <StatCard
+                icon="⏱️"
+                label="Duration"
+                value={trip.route?.duration ? `${trip.route.duration} min` : '—'}
+                color={COLORS.warning}
+              />
             </View>
           </Card>
         )}
 
-        <View style={styles.actions}>
-          {hasActiveTrip ? (
-            <Button
-              title="End Trip"
-              onPress={handleEndTrip}
-              variant="danger"
-              icon="⏹️"
-            />
-          ) : hasScheduledTrip ? (
-            <Button
-              title={startingTrip ? 'Starting...' : 'Start Trip'}
-              onPress={handleStartTrip}
-              loading={startingTrip}
-              disabled={startingTrip}
-              variant="success"
-              icon="▶️"
-            />
-          ) : null}
-
-          {hasActiveTrip && (
-            <Button
-              title="Go to Live Tracking"
-              onPress={() => navigation.navigate('MainTabs', {
-                screen: 'LiveTracking',
-                params: { tripId: trip.id, driverId: trip.driverId, routeId: trip.routeId, trip },
-              })}
-              variant="primary"
-              icon="📍"
-              style={styles.liveBtn}
-            />
-          )}
-        </View>
+        {hasActiveTrip && (
+          <TouchableOpacity style={styles.liveBtn} onPress={handleLiveTracking} activeOpacity={0.8}>
+            <Text style={styles.liveBtnIcon}>📍</Text>
+            <Text style={styles.liveBtnText}>Go to Live Tracking</Text>
+            <Text style={styles.liveBtnArrow}>→</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Sign Out</Text>
@@ -332,7 +311,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  headerInfo: {},
   headerGreeting: {
     fontSize: TYPOGRAPHY.sizes.sm,
     color: 'rgba(255,255,255,0.7)',
@@ -433,21 +411,6 @@ const styles = StyleSheet.create({
     fontWeight: TYPOGRAPHY.weights.bold,
   },
 
-  tripStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    marginTop: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: RADIUS.md,
-  },
-  tripStatusText: {
-    fontSize: TYPOGRAPHY.sizes.sm,
-    fontWeight: TYPOGRAPHY.weights.semibold,
-  },
-
   statsGrid: {
     flexDirection: 'row',
     gap: SPACING.sm,
@@ -471,18 +434,35 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
 
+  liveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: SPACING.lg,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  liveBtnIcon: { fontSize: 18 },
+  liveBtnText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.primary,
+  },
+  liveBtnArrow: {
+    fontSize: TYPOGRAPHY.sizes.lg,
+    color: COLORS.primary,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+
   mutedText: {
     fontSize: TYPOGRAPHY.sizes.sm,
     color: COLORS.textMuted,
     fontStyle: 'italic',
   },
-
-  actions: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-    marginTop: SPACING.sm,
-  },
-  liveBtn: { marginTop: 0 },
 
   logoutBtn: {
     marginHorizontal: SPACING.lg,

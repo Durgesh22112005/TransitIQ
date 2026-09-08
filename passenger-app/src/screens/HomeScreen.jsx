@@ -9,10 +9,10 @@ import { tripAPI } from '../services/api.service';
 import SearchBar from '../components/SearchBar';
 
 const QUICK_DEST = [
-  { id: 'a', icon: '✈️', label: 'Airport' },
-  { id: 'b', icon: '🏫', label: 'University' },
-  { id: 'c', icon: '🏥', label: 'Hospital' },
-  { id: 'd', icon: '🛒', label: 'Mall' },
+  { id: 'a', icon: '✈️', label: 'Airport', color: COLORS.primary },
+  { id: 'b', icon: '🏫', label: 'University', color: COLORS.accent },
+  { id: 'c', icon: '🏥', label: 'Hospital', color: COLORS.success },
+  { id: 'd', icon: '🛒', label: 'Mall', color: COLORS.info },
 ];
 
 const FEATURED_ROUTES = [
@@ -24,7 +24,7 @@ const FEATURED_ROUTES = [
 const ActiveTripCard = ({ trip, onPress }) => (
   <TouchableOpacity style={styles.activeCard} onPress={onPress} activeOpacity={0.85}>
     <LinearGradient
-      colors={[COLORS.success + '25', COLORS.success + '08']}
+      colors={['#0F2B1F', '#0C1914']}
       style={styles.activeCardGrad}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
     >
@@ -35,32 +35,32 @@ const ActiveTripCard = ({ trip, onPress }) => (
         </View>
         <Text style={styles.activeRouteNo}>{trip.route?.routeNo || '—'}</Text>
       </View>
-      <Text style={styles.activeRouteName}>{trip.route?.name || '—'}</Text>
-      <View style={styles.activeEndpoints}>
-        <View style={[styles.activeDot, { backgroundColor: COLORS.success }]} />
+      <Text style={styles.activeRouteName} numberOfLines={1}>{trip.route?.name || '—'}</Text>
+      <View style={styles.activeEndpointRow}>
+        <View style={[styles.miniDot, { backgroundColor: COLORS.success }]} />
         <Text style={styles.activeEpText} numberOfLines={1}>{trip.route?.startLocation || '—'}</Text>
-        <Text style={styles.activeArrow}>→</Text>
-        <View style={[styles.activeDot, { backgroundColor: COLORS.danger }]} />
+      </View>
+      <View style={styles.activeRouteLine}>
+        <View style={styles.activeRouteLineFill} />
+      </View>
+      <View style={styles.activeEndpointRow}>
+        <View style={[styles.miniDot, { backgroundColor: COLORS.danger }]} />
         <Text style={styles.activeEpText} numberOfLines={1}>{trip.route?.endLocation || '—'}</Text>
       </View>
-      <Text style={styles.activeDriver}>Driver: {trip.driver?.licenseNo || '—'} · {trip.bus?.regNo || '—'}</Text>
+      <View style={styles.activeMetaRow}>
+        <Text style={styles.activeMeta}>🚌 {trip.bus?.regNo || '—'}</Text>
+        <Text style={styles.activeMeta}>📍 {trip.route?.stops?.length || 0} stops</Text>
+      </View>
     </LinearGradient>
   </TouchableOpacity>
 );
 
 const RouteCard = ({ route, onPress }) => (
   <TouchableOpacity style={styles.routeCard} onPress={onPress} activeOpacity={0.85}>
-    <LinearGradient
-      colors={[COLORS.primary + '22', COLORS.primary + '08']}
-      style={styles.routeCardGrad}
-      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-    >
-      <View style={styles.routeCardHeader}>
-        <View style={styles.routeNoBox}>
-          <Text style={styles.routeNo}>{route.routeNo}</Text>
-        </View>
-        <Text style={styles.routeDuration}>{route.duration} min</Text>
-      </View>
+    <View style={styles.routeNoBox}>
+      <Text style={styles.routeNoText}>{route.routeNo}</Text>
+    </View>
+    <View style={styles.routeBody}>
       <Text style={styles.routeName} numberOfLines={1}>{route.name}</Text>
       <View style={styles.routeEndpoints}>
         <View style={[styles.dot, { backgroundColor: COLORS.success }]} />
@@ -69,8 +69,12 @@ const RouteCard = ({ route, onPress }) => (
         <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
         <Text style={styles.epText} numberOfLines={1}>{route.endLocation}</Text>
       </View>
-      <Text style={styles.routeStops}>{route.stops} stops</Text>
-    </LinearGradient>
+      <View style={styles.routeMetaRow}>
+        <Text style={styles.routeMeta}>⏱️ {route.duration} min</Text>
+        <Text style={styles.routeMeta}>🚏 {route.stops} stops</Text>
+      </View>
+    </View>
+    <Text style={styles.routeChevron}>›</Text>
   </TouchableOpacity>
 );
 
@@ -118,43 +122,63 @@ const HomeScreen = ({ navigation }) => {
             <ActivityIndicator size="small" color={COLORS.primary} />
           </View>
         ) : activeTrips.length > 0 ? (
-          <>
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Active Trips</Text>
-              <Text style={styles.activeCount}>{activeTrips.length} trip{activeTrips.length > 1 ? 's' : ''}</Text>
+              <Text style={styles.sectionTitle}>Live Now</Text>
+              <View style={styles.liveCountBadge}>
+                <Text style={styles.liveCountText}>{activeTrips.length} active</Text>
+              </View>
             </View>
-            {activeTrips.map((t) => (
-              <ActiveTripCard
-                key={t.id}
-                trip={t}
-                onPress={() => navigation.navigate('TripTracker', { tripId: t.id })}
-              />
-            ))}
-          </>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.activeTripsRow}
+            >
+              {activeTrips.map((t) => (
+                <ActiveTripCard
+                  key={t.id}
+                  trip={t}
+                  onPress={() => navigation.navigate('TripTracker', { tripId: t.id })}
+                />
+              ))}
+            </ScrollView>
+          </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Quick Destinations</Text>
-        <View style={styles.quickRow}>
-          {QUICK_DEST.map((d) => (
-            <TouchableOpacity key={d.id} style={styles.quickItem} onPress={() => navigation.navigate('RouteSearch', { query: d.label })} activeOpacity={0.8}>
-              <View style={styles.quickIcon}>
-                <Text style={styles.quickEmoji}>{d.icon}</Text>
-              </View>
-              <Text style={styles.quickLabel}>{d.label}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Destinations</Text>
+          <View style={styles.quickGrid}>
+            {QUICK_DEST.map((d) => (
+              <TouchableOpacity
+                key={d.id}
+                style={styles.quickItem}
+                onPress={() => navigation.navigate('RouteSearch', { query: d.label })}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[d.color + '22', d.color + '0A']}
+                  style={[styles.quickIcon, { borderColor: d.color + '40' }]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.quickEmoji}>{d.icon}</Text>
+                </LinearGradient>
+                <Text style={styles.quickLabel}>{d.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Popular Routes</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('RouteSearch')}>
+              <Text style={styles.seeAll}>See All →</Text>
             </TouchableOpacity>
+          </View>
+          {FEATURED_ROUTES.map((r) => (
+            <RouteCard key={r.id} route={r} onPress={() => navigation.navigate('RouteSearch', { query: r.routeNo })} />
           ))}
         </View>
-
-        <View style={styles.featuredHeader}>
-          <Text style={styles.sectionTitle}>Popular Routes</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('RouteSearch')}>
-            <Text style={styles.seeAll}>See All →</Text>
-          </TouchableOpacity>
-        </View>
-
-        {FEATURED_ROUTES.map((r) => (
-          <RouteCard key={r.id} route={r} onPress={() => navigation.navigate('RouteSearch', { query: r.routeNo })} />
-        ))}
 
         <View style={{ height: SPACING.xl }} />
       </ScrollView>
@@ -183,19 +207,29 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: TYPOGRAPHY.sizes.xl, fontWeight: TYPOGRAPHY.weights.bold, color: COLORS.textPrimary },
 
   scroll:       { flex: 1 },
-  scrollContent:{ padding: SPACING.lg, paddingTop: SPACING.md },
+  scrollContent:{ padding: SPACING.lg, paddingTop: SPACING.lg },
 
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
+  section:        { marginBottom: SPACING.xl },
+  sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
   sectionTitle: {
-    fontSize: TYPOGRAPHY.sizes.sm, fontWeight: TYPOGRAPHY.weights.semibold,
-    color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5,
-    marginBottom: SPACING.sm,
+    fontSize: TYPOGRAPHY.sizes.xs, fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 2,
   },
-  activeCount: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.success, fontWeight: TYPOGRAPHY.weights.bold },
+  seeAll: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primaryLight, fontWeight: TYPOGRAPHY.weights.semibold },
 
-  activeCard: { marginBottom: SPACING.md, borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOWS.card },
-  activeCardGrad: { padding: SPACING.md, gap: SPACING.xs, borderWidth: 1, borderColor: COLORS.success + '40', borderRadius: RADIUS.lg },
-  activeCardTop: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  liveCountBadge: {
+    backgroundColor: COLORS.success + '22',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+  },
+  liveCountText: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.success, fontWeight: TYPOGRAPHY.weights.bold },
+
+  // Active trips — horizontal scroll cards
+  activeTripsRow: { gap: SPACING.md, paddingRight: SPACING.xl },
+  activeCard: { width: 240, borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOWS.card },
+  activeCardGrad: { padding: SPACING.md, gap: SPACING.xs, borderWidth: 1, borderColor: COLORS.success + '3D', borderRadius: RADIUS.lg },
+  activeCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: COLORS.success + '30', paddingHorizontal: SPACING.sm,
@@ -203,41 +237,55 @@ const styles = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.success },
   liveText: { fontSize: 9, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.success, letterSpacing: 1 },
-  activeRouteNo: { fontSize: TYPOGRAPHY.sizes.lg, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primaryLight },
+  activeRouteNo: { fontSize: TYPOGRAPHY.sizes.sm, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primaryLight },
   activeRouteName: { fontSize: TYPOGRAPHY.sizes.md, fontWeight: TYPOGRAPHY.weights.semibold, color: COLORS.textPrimary },
-  activeEndpoints: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
-  activeDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
+  activeEndpointRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  miniDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
   activeEpText: { flex: 1, fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textSecondary },
-  activeArrow: { color: COLORS.textMuted, fontSize: TYPOGRAPHY.sizes.xs },
-  activeDriver: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted, marginTop: 2 },
+  activeRouteLine: { height: 10, justifyContent: 'center', marginLeft: 3 },
+  activeRouteLineFill: { width: 1, height: '100%', backgroundColor: COLORS.border },
+  activeMetaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.surface + '66' },
+  activeMeta: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
 
-  quickRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.lg },
-  quickItem:{ alignItems: 'center', gap: SPACING.xs },
+  // Quick destinations
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  quickItem: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, width: '48%', flexGrow: 1 },
   quickIcon: {
-    width: 60, height: 60, borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surface,
+    width: 52, height: 52, borderRadius: RADIUS.md,
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, ...SHADOWS.card,
+  },
+  quickEmoji: { fontSize: 24 },
+  quickLabel: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary, fontWeight: TYPOGRAPHY.weights.medium },
+
+  // Popular routes
+  routeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1, borderColor: COLORS.border,
+    padding: SPACING.md,
+    gap: SPACING.md,
+    marginBottom: SPACING.sm,
     ...SHADOWS.card,
   },
-  quickEmoji: { fontSize: 28 },
-  quickLabel: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textSecondary, fontWeight: TYPOGRAPHY.weights.medium },
-
-  featuredHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  seeAll: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primaryLight, fontWeight: TYPOGRAPHY.weights.semibold },
-
-  routeCard: { marginBottom: SPACING.md, borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOWS.card },
-  routeCardGrad: { padding: SPACING.md, gap: SPACING.sm, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.lg },
-  routeCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  routeNoBox: { backgroundColor: COLORS.primary + '33', paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: RADIUS.sm },
-  routeNo: { fontSize: TYPOGRAPHY.sizes.sm, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primaryLight },
-  routeDuration: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
+  routeNoBox: {
+    width: 56, height: 56, borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary + '22',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: COLORS.primary + '40',
+  },
+  routeNoText: { fontSize: TYPOGRAPHY.sizes.sm, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primaryLight },
+  routeBody: { flex: 1, gap: SPACING.xs },
   routeName: { fontSize: TYPOGRAPHY.sizes.md, fontWeight: TYPOGRAPHY.weights.semibold, color: COLORS.textPrimary },
-  routeEndpoints:{ flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  routeEndpoints: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
   dot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   epText: { flex: 1, fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textSecondary },
   epArrow: { color: COLORS.textMuted, fontSize: TYPOGRAPHY.sizes.xs },
-  routeStops: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
+  routeMetaRow: { flexDirection: 'row', gap: SPACING.md },
+  routeMeta: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
+  routeChevron: { fontSize: 24, color: COLORS.textMuted },
 });
 
 export default HomeScreen;

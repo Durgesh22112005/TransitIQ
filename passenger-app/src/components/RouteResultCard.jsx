@@ -23,21 +23,21 @@ const RouteResultCard = ({ route, onPress }) => {
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-      {/* Left accent bar */}
       <View style={[styles.accentBar, { backgroundColor: statusColor }]} />
 
       <View style={styles.body}>
-        {/* Top row */}
         <View style={styles.topRow}>
-          <Text style={styles.routeNo}>{route.routeNo}</Text>
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.status, { color: statusColor }]}>{route.status}</Text>
+          <View style={styles.routeNoBadge}>
+            <Text style={styles.routeNo}>{route.routeNo}</Text>
+          </View>
+          <View style={[styles.statusPill, { backgroundColor: statusColor + '1A' }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.status, { color: statusColor }]}>{route.status}</Text>
+          </View>
         </View>
 
-        {/* Route name */}
         <Text style={styles.routeName} numberOfLines={1}>{route.name}</Text>
 
-        {/* Endpoints */}
         <View style={styles.endpointsRow}>
           <View style={styles.endpoint}>
             <View style={[styles.dot, { backgroundColor: COLORS.success }]} />
@@ -50,7 +50,6 @@ const RouteResultCard = ({ route, onPress }) => {
           </View>
         </View>
 
-        {/* Meta */}
         <View style={styles.metaRow}>
           {route.distance  && <Text style={styles.meta}>📍 {route.distance} km</Text>}
           {route.duration  && <Text style={styles.meta}>⏱️ {route.duration} min</Text>}
@@ -75,9 +74,16 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   accentBar: { width: 4, alignSelf: 'stretch' },
-  body:       { flex: 1, padding: SPACING.md, gap: SPACING.xs },
-  topRow:     { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  routeNo:    { fontSize: TYPOGRAPHY.sizes.lg, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primary },
+  body:       { flex: 1, padding: SPACING.md, gap: SPACING.sm },
+  topRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  routeNoBadge: {
+    backgroundColor: COLORS.primary + '22',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: RADIUS.sm,
+  },
+  routeNo:    { fontSize: TYPOGRAPHY.sizes.sm, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primaryLight },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: RADIUS.full },
   statusDot:  { width: 6, height: 6, borderRadius: 3 },
   status:     { fontSize: TYPOGRAPHY.sizes.xs, fontWeight: TYPOGRAPHY.weights.semibold, textTransform: 'uppercase' },
   routeName:  { fontSize: TYPOGRAPHY.sizes.md, fontWeight: TYPOGRAPHY.weights.semibold, color: COLORS.textPrimary },

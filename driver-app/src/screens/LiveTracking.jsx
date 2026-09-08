@@ -4,9 +4,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../constants/theme';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import LiveMap from '../components/LiveMap';
 import useLocationTracking from '../hooks/useLocationTracking';
 
 const InfoRow = ({ icon, label, value, highlight }) => (
@@ -94,18 +95,11 @@ const LiveTracking = ({ route, navigation }) => {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.mapPlaceholder}>
-          <LinearGradient
-            colors={[COLORS.primaryBg, COLORS.surfaceLight]}
-            style={styles.mapGradient}
-          >
-            <Text style={styles.mapIcon}>🗺️</Text>
-            <Text style={styles.mapTitle}>Live Map View</Text>
-            <Text style={styles.mapAccuracy}>
-              {location?.accuracy != null ? `Accuracy: ±${location.accuracy.toFixed(0)}m` : 'Acquiring GPS...'}
-            </Text>
-          </LinearGradient>
-        </View>
+        <LiveMap
+          location={location}
+          gpsActive={gpsActive && !error}
+          height={230}
+        />
 
         <Card padding={SPACING.md}>
           <View style={styles.timerSection}>
@@ -164,22 +158,29 @@ const LiveTracking = ({ route, navigation }) => {
           />
         </Card>
 
-        {tripData?.bus && (
+        {(tripData?.bus || tripData?.route) && (
           <Card padding={SPACING.md}>
-            <Text style={styles.sectionTitle}>Bus Info</Text>
-            <InfoRow icon="🚌" label="Registration" value={tripData.bus.regNo} />
-            <InfoRow icon="🏷️" label="Model" value={tripData.bus.model} />
-            <InfoRow icon="👥" label="Capacity" value={`${tripData.bus.capacity} seats`} />
+            <Text style={styles.sectionTitle}>Trip Details</Text>
+            {tripData?.route && (
+              <>
+                <InfoRow icon="🛣️" label="Route" value={tripData.route.name} />
+                <InfoRow icon="🔢" label="Route No" value={tripData.route.routeNo} />
+                <InfoRow icon="📍" label="From" value={tripData.route.startLocation} />
+                <InfoRow icon="🏁" label="To" value={tripData.route.endLocation} />
+                {tripData.route.distance && <InfoRow icon="📏" label="Distance" value={`${tripData.route.distance} km`} />}
+                {tripData.route.duration && <InfoRow icon="⏱️" label="Duration" value={`${tripData.route.duration} min`} />}
+              </>
+            )}
+            {tripData?.bus && (
+              <>
+                <View style={styles.divider} />
+                <InfoRow icon="🚌" label="Bus Reg" value={tripData.bus.regNo} />
+                <InfoRow icon="🏷️" label="Model" value={tripData.bus.model} />
+                <InfoRow icon="👥" label="Capacity" value={`${tripData.bus.capacity} seats`} />
+              </>
+            )}
           </Card>
         )}
-
-        <Card padding={SPACING.md}>
-          <Text style={styles.sectionTitle}>Route Info</Text>
-          <InfoRow icon="🛣️" label="Route" value={tripData?.route?.name} />
-          <InfoRow icon="📍" label="From" value={tripData?.route?.startLocation} />
-          <InfoRow icon="🏁" label="To" value={tripData?.route?.endLocation} />
-          {tripData?.route?.distance && <InfoRow icon="📏" label="Distance" value={`${tripData.route.distance} km`} />}
-        </Card>
 
         <Button
           title="End Trip"
@@ -232,24 +233,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
 
-  mapPlaceholder: {
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    ...SHADOWS.card,
-  },
-  mapGradient: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.lg,
-    gap: SPACING.xs,
-  },
-  mapIcon: { fontSize: 48 },
-  mapTitle: { fontSize: TYPOGRAPHY.sizes.lg, fontWeight: TYPOGRAPHY.weights.bold, color: COLORS.textSecondary },
-  mapAccuracy: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
-
   timerSection: { alignItems: 'center', paddingVertical: SPACING.sm },
   timerLabel: {
     fontSize: TYPOGRAPHY.sizes.sm,
@@ -292,6 +275,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: SPACING.xs,
   },
+
+  divider: { height: 1, backgroundColor: COLORS.border + '66', marginVertical: SPACING.sm },
 
   infoRow: {
     flexDirection: 'row',
