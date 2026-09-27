@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION } from '../constants/theme';
 import Button from './Button';
 
 const statusConfig = {
@@ -18,6 +18,25 @@ const formatTime = (dateStr) => {
 };
 
 const TripCard = ({ trip, onStart, onEnd, starting }) => {
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(cardOpacity, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardTranslateY, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   if (!trip) {
     return (
       <View style={styles.card}>
@@ -37,7 +56,7 @@ const TripCard = ({ trip, onStart, onEnd, starting }) => {
   const isScheduled = trip.status === 'SCHEDULED';
 
   return (
-    <View style={styles.card}>
+    <Animated.View style={[styles.card, { opacity: cardOpacity, transform: [{ translateY: cardTranslateY }] }]}>
       <View style={[styles.statusBar, { backgroundColor: cfg.dot }]} />
 
       <View style={styles.content}>
@@ -54,8 +73,11 @@ const TripCard = ({ trip, onStart, onEnd, starting }) => {
 
         {isActive && (
           <View style={styles.activeBanner}>
-            <Text style={styles.activeIcon}>🟢</Text>
-            <Text style={styles.activeText}>Live — Started at {formatTime(trip.actualStart)}</Text>
+            <View style={styles.liveIndicator}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </View>
+            <Text style={styles.activeText}>Started at {formatTime(trip.actualStart)}</Text>
           </View>
         )}
 
@@ -112,36 +134,30 @@ const TripCard = ({ trip, onStart, onEnd, starting }) => {
 
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>📅</Text>
             <Text style={styles.detailLabel}>Schedule</Text>
             <Text style={styles.detailValue}>{formatTime(trip.scheduledStart)}</Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>🚌</Text>
             <Text style={styles.detailLabel}>Bus</Text>
             <Text style={styles.detailValue}>{trip.bus?.regNo || trip.driver?.assignedBus?.regNo || '—'}</Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>🚏</Text>
             <Text style={styles.detailLabel}>Stops</Text>
             <Text style={styles.detailValue}>{trip.route?.stops?.length || 0}</Text>
           </View>
           {trip.route?.distance && (
             <View style={styles.detailItem}>
-              <Text style={styles.detailIcon}>📏</Text>
               <Text style={styles.detailLabel}>Distance</Text>
               <Text style={styles.detailValue}>{trip.route.distance} km</Text>
             </View>
           )}
           {trip.route?.duration && (
             <View style={styles.detailItem}>
-              <Text style={styles.detailIcon}>⏱️</Text>
               <Text style={styles.detailLabel}>Duration</Text>
               <Text style={styles.detailValue}>{trip.route.duration} min</Text>
             </View>
           )}
           <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>👤</Text>
             <Text style={styles.detailLabel}>Driver</Text>
             <Text style={styles.detailValue} numberOfLines={1}>{trip.driver?.user?.name || '—'}</Text>
           </View>
@@ -180,7 +196,7 @@ const TripCard = ({ trip, onStart, onEnd, starting }) => {
           )}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -190,10 +206,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    ...SHADOWS.card,
     overflow: 'hidden',
+    ...SHADOWS.card,
   },
-  statusBar: { height: 4 },
+  statusBar: { height: 3 },
   content: { padding: SPACING.md, gap: SPACING.md },
 
   header: {
@@ -205,7 +221,7 @@ const styles = StyleSheet.create({
   routeNo: {
     fontSize: TYPOGRAPHY.sizes['2xl'],
     fontWeight: TYPOGRAPHY.weights.black,
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
   },
   routeName: {
     fontSize: TYPOGRAPHY.sizes.md,
@@ -221,7 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     gap: 6,
   },
-  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusLabel: { fontSize: TYPOGRAPHY.sizes.xs, fontWeight: TYPOGRAPHY.weights.bold },
 
   activeBanner: {
@@ -232,22 +248,38 @@ const styles = StyleSheet.create({
     padding: SPACING.sm,
     gap: SPACING.sm,
   },
-  activeIcon: { fontSize: 12 },
-  activeText: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.success, fontWeight: TYPOGRAPHY.weights.semibold },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.success,
+  },
+  liveText: {
+    fontSize: TYPOGRAPHY.sizes.xs - 1,
+    fontWeight: TYPOGRAPHY.weights.black,
+    color: COLORS.success,
+    letterSpacing: 1,
+  },
+  activeText: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textSecondary, fontWeight: TYPOGRAPHY.weights.medium },
 
   endpoints: { gap: 0 },
-  endpointCol: { flexDirection: 'row', minHeight: 48 },
-  endpointMarker: { alignItems: 'center', width: 24, marginRight: SPACING.sm },
+  endpointCol: { flexDirection: 'row', minHeight: 44 },
+  endpointMarker: { alignItems: 'center', width: 22, marginRight: SPACING.sm },
   endpointDot: {
-    width: 16, height: 16, borderRadius: 8,
+    width: 14, height: 14, borderRadius: 7,
     justifyContent: 'center', alignItems: 'center',
   },
-  endpointInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.surface },
-  intermediateDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.textMuted },
-  endpointLine: { width: 2, flex: 1, backgroundColor: COLORS.border, marginVertical: 2 },
+  endpointInner: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.surface },
+  intermediateDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COLORS.textMuted },
+  endpointLine: { width: 1.5, flex: 1, backgroundColor: COLORS.border, marginVertical: 2 },
   endpointInfo: { flex: 1, justifyContent: 'center', paddingBottom: SPACING.sm },
   endpointLabel: {
-    fontSize: TYPOGRAPHY.sizes.xs,
+    fontSize: TYPOGRAPHY.sizes.xs - 1,
     fontWeight: TYPOGRAPHY.weights.bold,
     color: COLORS.textMuted,
     letterSpacing: 0.8,
@@ -259,7 +291,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  divider: { height: 1, backgroundColor: COLORS.border + '66' },
+  divider: { height: 1, backgroundColor: COLORS.borderLight },
 
   detailsGrid: {
     flexDirection: 'row',
@@ -267,7 +299,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   detailItem: {
-    width: '30%',
+    minWidth: 80,
     flexGrow: 1,
     backgroundColor: COLORS.surfaceLight,
     borderRadius: RADIUS.sm,
@@ -275,9 +307,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  detailIcon: { fontSize: 16 },
   detailLabel: {
-    fontSize: TYPOGRAPHY.sizes.xs,
+    fontSize: TYPOGRAPHY.sizes.xs - 1,
     color: COLORS.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -291,7 +322,7 @@ const styles = StyleSheet.create({
 
   busSection: { alignItems: 'center', gap: 2 },
   busLabel: {
-    fontSize: TYPOGRAPHY.sizes.xs,
+    fontSize: TYPOGRAPHY.sizes.xs - 1,
     color: COLORS.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -299,13 +330,13 @@ const styles = StyleSheet.create({
   busReg: {
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.bold,
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
   },
   busModel: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
 
   footer: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.borderLight,
     padding: SPACING.sm,
   },
 
@@ -315,7 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceLight,
     justifyContent: 'center', alignItems: 'center',
   },
-  emptyIcon: { fontSize: 32 },
+  emptyIcon: { fontSize: 28 },
   emptyTitle: {
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.bold,

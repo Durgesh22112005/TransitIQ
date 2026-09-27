@@ -19,6 +19,12 @@ const setupSocket = (httpServer) => {
       socket.join(`route:${routeId}`);
     });
 
+    socket.on('passenger:join', (data) => {
+      console.log(`[Socket] Passenger joined: ${JSON.stringify(data)}`);
+      const { tripId } = data;
+      socket.join(`trip:${tripId}`);
+    });
+
     socket.on('location:update', (data) => {
       const { driverId, tripId } = data;
       io.to(`trip:${tripId}`).emit('location:updated', data);

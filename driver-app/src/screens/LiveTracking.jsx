@@ -1,18 +1,21 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, GRADIENTS, GLASS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION } from '../constants/theme';
 import Card from '../components/Card';
+import GlassView from '../components/GlassView';
+import GlassBackground from '../components/GlassBackground';
 import Button from '../components/Button';
 import LiveMap from '../components/LiveMap';
 import useLocationTracking from '../hooks/useLocationTracking';
 
 const InfoRow = ({ icon, label, value, highlight }) => (
   <View style={[styles.infoRow, highlight && styles.infoRowHighlight]}>
-    <Text style={styles.infoIcon}>{icon}</Text>
+    <Ionicons name={icon} size={16} color={highlight ? COLORS.warning : COLORS.textMuted} style={styles.infoIcon} />
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={[styles.infoValue, highlight && styles.infoValueHighlight]}>
@@ -39,6 +42,25 @@ const LiveTracking = ({ route, navigation }) => {
     endTrip,
     formatTime,
   } = useLocationTracking(tripId, driverId, routeId, true);
+
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerFade, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerSlide, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleEndTrip = useCallback(async () => {
     Alert.alert(
@@ -70,20 +92,23 @@ const LiveTracking = ({ route, navigation }) => {
   const gpsStatusText = gpsStatus === 'active' ? 'GPS Active' : gpsStatus === 'error' ? 'GPS Error' : 'GPS Inactive';
 
   return (
+    <GlassBackground>
     <SafeAreaView style={styles.safe} edges={['top']}>
       <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryDark]}
+        colors={GRADIENTS.header}
         style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <View style={styles.headerTop}>
+        <Animated.View style={[styles.headerTop, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
           <Text style={styles.headerTitle}>Live Tracking</Text>
-          <View style={styles.connStatus}>
+          <GlassView intensity={20} tint="dark" style={styles.connStatus}>
             <ConnectionDot status={connectionStatus} />
             <Text style={styles.connText}>
               {connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
             </Text>
-          </View>
-        </View>
+          </GlassView>
+        </Animated.View>
         <Text style={styles.headerSub}>
           {tripData?.route?.routeNo || routeId || 'Active Trip'}
         </Text>
@@ -95,13 +120,15 @@ const LiveTracking = ({ route, navigation }) => {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-        <LiveMap
-          location={location}
-          gpsActive={gpsActive && !error}
-          height={230}
-        />
+        <View style={styles.mapContainer}>
+          <LiveMap
+            location={location}
+            gpsActive={gpsActive && !error}
+            height={230}
+          />
+        </View>
 
-        <Card padding={SPACING.md}>
+        <Card padding={SPACING.md} delay={100}>
           <View style={styles.timerSection}>
             <Text style={styles.timerLabel}>Trip Duration</Text>
             <Text style={styles.timerValue}>{formatTime}</Text>
@@ -110,73 +137,82 @@ const LiveTracking = ({ route, navigation }) => {
 
         {error && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorIcon}>⚠️</Text>
+            <Ionicons name="warning" size={16} color={COLORS.danger} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
-        <Card padding={SPACING.md}>
+        <Card padding={SPACING.md} delay={180}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Location Data</Text>
-            <View style={[styles.gpsBadge, { borderColor: gpsStatusColor + '40' }]}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="navigate" size={14} color={COLORS.primaryLight} />
+              <Text style={styles.sectionTitle}>Location Data</Text>
+            </View>
+            <GlassView intensity={15} tint="dark" style={[styles.gpsBadge, { borderColor: gpsStatusColor + '40' }]}>
               <View style={[styles.gpsDot, { backgroundColor: gpsStatusColor }]} />
               <Text style={[styles.gpsText, { color: gpsStatusColor }]}>{gpsStatusText}</Text>
-            </View>
+            </GlassView>
           </View>
-          <InfoRow icon="🌐" label="Latitude" value={location?.latitude?.toFixed(6)} />
-          <InfoRow icon="🌐" label="Longitude" value={location?.longitude?.toFixed(6)} />
+          <InfoRow icon="globe-outline" label="Latitude" value={location?.latitude?.toFixed(6)} />
+          <InfoRow icon="globe-outline" label="Longitude" value={location?.longitude?.toFixed(6)} />
           <InfoRow
-            icon="💨" label="Speed"
+            icon="speedometer-outline" label="Speed"
             value={location?.speed != null ? `${(location.speed * 3.6).toFixed(1)} km/h` : '0 km/h'}
           />
           <InfoRow
-            icon="🧭" label="Heading"
+            icon="compass-outline" label="Heading"
             value={location?.heading != null ? `${location.heading.toFixed(1)}°` : '—'}
           />
           <InfoRow
-            icon="⛰️" label="Altitude"
+            icon="mountain-outline" label="Altitude"
             value={location?.altitude != null ? `${location.altitude.toFixed(1)} m` : '—'}
           />
           <InfoRow
-            icon="🎯" label="GPS Accuracy"
+            icon="radio-outline" label="GPS Accuracy"
             value={location?.accuracy != null ? `±${location.accuracy.toFixed(0)} m` : '—'}
             highlight={location?.accuracy != null && location.accuracy > 50}
           />
         </Card>
 
-        <Card padding={SPACING.md}>
-          <Text style={styles.sectionTitle}>Connection</Text>
+        <Card padding={SPACING.md} delay={260}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="wifi" size={14} color={COLORS.primaryLight} />
+            <Text style={styles.sectionTitle}>Connection</Text>
+          </View>
           <InfoRow
-            icon="📡" label="Socket"
+            icon="cellular-outline" label="Socket"
             value={connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'connecting' ? 'Reconnecting...' : 'Disconnected'}
             highlight={connectionStatus !== 'connected'}
           />
           <InfoRow
-            icon="📍" label="GPS"
+            icon="location-outline" label="GPS"
             value={gpsActive ? 'Active' : error ? 'Error' : 'Waiting'}
             highlight={!gpsActive}
           />
         </Card>
 
         {(tripData?.bus || tripData?.route) && (
-          <Card padding={SPACING.md}>
-            <Text style={styles.sectionTitle}>Trip Details</Text>
+          <Card padding={SPACING.md} delay={340}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="information-circle" size={14} color={COLORS.primaryLight} />
+              <Text style={styles.sectionTitle}>Trip Details</Text>
+            </View>
             {tripData?.route && (
               <>
-                <InfoRow icon="🛣️" label="Route" value={tripData.route.name} />
-                <InfoRow icon="🔢" label="Route No" value={tripData.route.routeNo} />
-                <InfoRow icon="📍" label="From" value={tripData.route.startLocation} />
-                <InfoRow icon="🏁" label="To" value={tripData.route.endLocation} />
-                {tripData.route.distance && <InfoRow icon="📏" label="Distance" value={`${tripData.route.distance} km`} />}
-                {tripData.route.duration && <InfoRow icon="⏱️" label="Duration" value={`${tripData.route.duration} min`} />}
+                <InfoRow icon="map-outline" label="Route" value={tripData.route.name} />
+                <InfoRow icon="hash" label="Route No" value={tripData.route.routeNo} />
+                <InfoRow icon="location-outline" label="From" value={tripData.route.startLocation} />
+                <InfoRow icon="flag-outline" label="To" value={tripData.route.endLocation} />
+                {tripData.route.distance && <InfoRow icon="resize-outline" label="Distance" value={`${tripData.route.distance} km`} />}
+                {tripData.route.duration && <InfoRow icon="time-outline" label="Duration" value={`${tripData.route.duration} min`} />}
               </>
             )}
             {tripData?.bus && (
               <>
                 <View style={styles.divider} />
-                <InfoRow icon="🚌" label="Bus Reg" value={tripData.bus.regNo} />
-                <InfoRow icon="🏷️" label="Model" value={tripData.bus.model} />
-                <InfoRow icon="👥" label="Capacity" value={`${tripData.bus.capacity} seats`} />
+                <InfoRow icon="bus-outline" label="Bus Reg" value={tripData.bus.regNo} />
+                <InfoRow icon="pricetag-outline" label="Model" value={tripData.bus.model} />
+                <InfoRow icon="people-outline" label="Capacity" value={`${tripData.bus.capacity} seats`} />
               </>
             )}
           </Card>
@@ -191,11 +227,12 @@ const LiveTracking = ({ route, navigation }) => {
         />
       </ScrollView>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { flex: 1 },
   scrollContent: { padding: SPACING.lg, gap: SPACING.md, paddingBottom: SPACING['3xl'] },
 
@@ -225,12 +262,19 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
   },
-  connDot: { width: 8, height: 8, borderRadius: 4 },
+  connDot: { width: 7, height: 7, borderRadius: 3.5 },
   connText: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textWhite, fontWeight: TYPOGRAPHY.weights.semibold },
   headerSub: {
     fontSize: TYPOGRAPHY.sizes.sm,
     color: 'rgba(255,255,255,0.7)',
     marginTop: SPACING.xs,
+  },
+
+  mapContainer: {
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   timerSection: { alignItems: 'center', paddingVertical: SPACING.sm },
@@ -243,7 +287,7 @@ const styles = StyleSheet.create({
   timerValue: {
     fontSize: TYPOGRAPHY.sizes['3xl'],
     fontWeight: TYPOGRAPHY.weights.black,
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
     fontVariant: ['tabular-nums'],
     marginTop: SPACING.xs,
   },
@@ -258,7 +302,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger + '30',
     gap: SPACING.sm,
   },
-  errorIcon: { fontSize: 16 },
   errorText: { flex: 1, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.danger, fontWeight: TYPOGRAPHY.weights.medium },
 
   sectionHeader: {
@@ -267,22 +310,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xs,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs + 2,
+    marginBottom: SPACING.xs,
+  },
   sectionTitle: {
     fontSize: TYPOGRAPHY.sizes.sm,
     fontWeight: TYPOGRAPHY.weights.bold,
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: SPACING.xs,
   },
 
-  divider: { height: 1, backgroundColor: COLORS.border + '66', marginVertical: SPACING.sm },
+  divider: { height: 1, backgroundColor: COLORS.borderLight, marginVertical: SPACING.sm },
 
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.sm - 2,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
   },
@@ -290,8 +338,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.warningBg,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.xs,
+    marginHorizontal: -SPACING.xs,
   },
-  infoIcon: { fontSize: 16, width: 26, textAlign: 'center' },
+  infoIcon: { width: 20, textAlign: 'center' },
   infoContent: { flex: 1 },
   infoLabel: {
     fontSize: TYPOGRAPHY.sizes.xs,

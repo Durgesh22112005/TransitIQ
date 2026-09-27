@@ -1,7 +1,3 @@
-// =============================================================
-// src/screens/RegisterScreen.jsx – Driver App
-// =============================================================
-
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
@@ -9,8 +5,11 @@ import {
   ScrollView, Animated, Alert, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, GRADIENTS, GLASS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import Button from '../components/Button';
+import GlassView from '../components/GlassView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -27,10 +26,40 @@ const RegisterScreen = ({ navigation }) => {
   const [loading,  setLoading]  = useState(false);
   const [errors,   setErrors]   = useState({});
 
-  // Button press animation
-  const btnScale = useRef(new Animated.Value(1)).current;
-  const onPressIn  = () => Animated.spring(btnScale, { toValue: 0.96, useNativeDriver: true }).start();
-  const onPressOut = () => Animated.spring(btnScale, { toValue: 1,    useNativeDriver: true }).start();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const cardFade = useRef(new Animated.Value(0)).current;
+  const cardSlide = useRef(new Animated.Value(20)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.parallel([
+      Animated.timing(cardFade, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        delay: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardSlide, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        delay: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const set = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
@@ -74,166 +103,212 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
+  const passwordStrength = (() => {
+    let score = 0;
+    if (form.password.length >= 8) score++;
+    if (/[A-Z]/.test(form.password)) score++;
+    if (/\d/.test(form.password)) score++;
+    if (/[^A-Za-z0-9]/.test(form.password)) score++;
+    return score;
+  })();
+
+  const strengthColors = [COLORS.danger, COLORS.danger, COLORS.warning, COLORS.success, COLORS.success];
+  const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+
+  const InputField = ({ label, value, onChangeText, placeholder, error, secure, keyboardType, showPass, onTogglePass, editable, icon }) => {
+    const [focused, setFocused] = useState(false);
+
+    return (
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>{label}</Text>
+        <GlassView intensity={15} tint="dark" style={[styles.inputRow, error && styles.inputError, focused && styles.inputFocused]}>
+          <Ionicons name={icon} size={18} color={focused ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
+          <TextInput
+            style={styles.passwordInput}
+            placeholder={placeholder}
+            placeholderTextColor={COLORS.textMuted}
+            value={value}
+            onChangeText={onChangeText}
+            secureTextEntry={secure && !showPass}
+            keyboardType={keyboardType}
+            autoCapitalize={secure ? 'none' : 'words'}
+            autoCorrect={false}
+            editable={editable}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+          />
+          {secure && (
+            <TouchableOpacity onPress={onTogglePass} style={styles.eyeBtn}>
+              <Ionicons name={showPass ? 'eye-off' : 'eye'} size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
+        </GlassView>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      </View>
+    );
+  };
+
   return (
-    <LinearGradient colors={[COLORS.background, '#0D1B3E']} style={styles.gradient}>
+    <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.centered}>
-            {/* Header */}
-            <View style={styles.header}>
+            <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <LinearGradient
-                colors={[COLORS.accent, COLORS.primary]}
+                colors={GRADIENTS.accent}
                 style={styles.logoBox}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.logoEmoji}>🪪</Text>
+                <Ionicons name="card" size={36} color={COLORS.textWhite} />
               </LinearGradient>
               <Text style={styles.title}>Join as Driver</Text>
               <Text style={styles.subtitle}>Create your driver account to get started</Text>
-            </View>
+            </Animated.View>
 
-            {/* Card */}
-            <View style={styles.card}>
-              {/* Full Name */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <TextInput
-                  style={[styles.input, errors.name && styles.inputError]}
-                  placeholder="John Doe"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={form.name}
-                  onChangeText={(v) => set('name', v)}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
-                {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
-              </View>
+            <Animated.View style={[styles.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
+              <GlassView intensity={25} tint="dark" style={styles.cardGlass}>
+              <InputField
+                label="Full Name"
+                value={form.name}
+                onChangeText={(v) => set('name', v)}
+                placeholder="John Doe"
+                error={errors.name}
+                editable={!loading}
+                icon="person-outline"
+              />
 
-              {/* Email */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput
-                  style={[styles.input, errors.email && styles.inputError]}
-                  placeholder="driver@transitiq.com"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={form.email}
-                  onChangeText={(v) => set('email', v)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-              </View>
+              <InputField
+                label="Email Address"
+                value={form.email}
+                onChangeText={(v) => set('email', v)}
+                placeholder="driver@transitiq.com"
+                error={errors.email}
+                keyboardType="email-address"
+                editable={!loading}
+                icon="mail-outline"
+              />
 
-              {/* Phone */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Phone (optional)</Text>
-                <TextInput
-                  style={[styles.input, errors.phone && styles.inputError]}
-                  placeholder="+91 98765 43210"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={form.phone}
-                  onChangeText={(v) => set('phone', v)}
-                  keyboardType="phone-pad"
-                  autoCorrect={false}
-                />
-                {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
-              </View>
+              <InputField
+                label="Phone (optional)"
+                value={form.phone}
+                onChangeText={(v) => set('phone', v)}
+                placeholder="+91 98765 43210"
+                error={errors.phone}
+                keyboardType="phone-pad"
+                editable={!loading}
+                icon="call-outline"
+              />
 
-              {/* License Number */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>License Number (optional)</Text>
-                <TextInput
-                  style={[styles.input, errors.licenseNo && styles.inputError]}
-                  placeholder="DL-01-2025-0012345"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={form.licenseNo}
-                  onChangeText={(v) => set('licenseNo', v)}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                />
-                {errors.licenseNo ? <Text style={styles.errorText}>{errors.licenseNo}</Text> : null}
-              </View>
+              <InputField
+                label="License Number (optional)"
+                value={form.licenseNo}
+                onChangeText={(v) => set('licenseNo', v)}
+                placeholder="DL-01-2025-0012345"
+                error={errors.licenseNo}
+                editable={!loading}
+                icon="card-outline"
+              />
 
-              {/* Password */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={[styles.passwordRow, errors.password && styles.inputError]}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Min. 8 chars, 1 uppercase, 1 number"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={form.password}
-                    onChangeText={(v) => set('password', v)}
-                    secureTextEntry={!showPass}
-                  />
-                  <TouchableOpacity onPress={() => setShowPass((v) => !v)} style={styles.eyeBtn}>
-                    <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
-                  </TouchableOpacity>
+              <InputField
+                label="Password"
+                value={form.password}
+                onChangeText={(v) => set('password', v)}
+                placeholder="Min. 8 chars, 1 uppercase, 1 number"
+                error={errors.password}
+                secure
+                showPass={showPass}
+                onTogglePass={() => setShowPass((v) => !v)}
+                editable={!loading}
+                icon="lock-closed-outline"
+              />
+
+              <InputField
+                label="Confirm Password"
+                value={form.confirmPassword}
+                onChangeText={(v) => set('confirmPassword', v)}
+                placeholder="Re-enter password"
+                error={errors.confirmPassword}
+                secure
+                showPass={showPass}
+                editable={!loading}
+                icon="lock-closed-outline"
+              />
+
+              {form.password.length > 0 && (
+                <View style={styles.strengthSection}>
+                  <View style={styles.strengthBar}>
+                    {[0, 1, 2, 3].map((i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.strengthSegment,
+                          {
+                            backgroundColor: i < passwordStrength
+                              ? strengthColors[passwordStrength]
+                              : GLASS.bgMedium,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <Text style={[styles.strengthLabel, { color: strengthColors[passwordStrength] }]}>
+                    {strengthLabels[passwordStrength]}
+                  </Text>
                 </View>
-                {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-              </View>
+              )}
 
-              {/* Confirm Password */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
-                <View style={[styles.passwordRow, errors.confirmPassword && styles.inputError]}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Re-enter password"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={form.confirmPassword}
-                    onChangeText={(v) => set('confirmPassword', v)}
-                    secureTextEntry={!showPass}
-                  />
-                </View>
-                {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
-              </View>
-
-              {/* Password requirements hint */}
               <View style={styles.hintBox}>
                 <Text style={styles.hintTitle}>Password must contain:</Text>
-                <Text style={[styles.hintItem, form.password.length >= 8 && styles.hintValid]}>
-                  {form.password.length >= 8 ? '✓' : '○'}  At least 8 characters
-                </Text>
-                <Text style={[styles.hintItem, /[A-Z]/.test(form.password) && styles.hintValid]}>
-                  {/[A-Z]/.test(form.password) ? '✓' : '○'}  One uppercase letter
-                </Text>
-                <Text style={[styles.hintItem, /\d/.test(form.password) && styles.hintValid]}>
-                  {/\d/.test(form.password) ? '✓' : '○'}  One number
-                </Text>
+                <View style={styles.hintItem}>
+                  <Ionicons
+                    name={form.password.length >= 8 ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={14}
+                    color={form.password.length >= 8 ? COLORS.success : COLORS.textMuted}
+                  />
+                  <Text style={[styles.hintText, form.password.length >= 8 && styles.hintValid]}>
+                    At least 8 characters
+                  </Text>
+                </View>
+                <View style={styles.hintItem}>
+                  <Ionicons
+                    name={/[A-Z]/.test(form.password) ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={14}
+                    color={/[A-Z]/.test(form.password) ? COLORS.success : COLORS.textMuted}
+                  />
+                  <Text style={[styles.hintText, /[A-Z]/.test(form.password) && styles.hintValid]}>
+                    One uppercase letter
+                  </Text>
+                </View>
+                <View style={styles.hintItem}>
+                  <Ionicons
+                    name={/\d/.test(form.password) ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={14}
+                    color={/\d/.test(form.password) ? COLORS.success : COLORS.textMuted}
+                  />
+                  <Text style={[styles.hintText, /\d/.test(form.password) && styles.hintValid]}>
+                    One number
+                  </Text>
+                </View>
               </View>
 
-              {/* Register button */}
-              <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-                <TouchableOpacity
-                  onPressIn={onPressIn}
-                  onPressOut={onPressOut}
-                  onPress={handleRegister}
-                  activeOpacity={0.9}
-                  disabled={loading}
-                >
-                  <LinearGradient
-                    colors={[COLORS.accent, COLORS.accentDark]}
-                    style={styles.registerBtn}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  >
-                    <Text style={styles.registerBtnText}>
-                      {loading ? 'Creating Account...' : 'Create Driver Account'}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
+              <Button
+                title={loading ? 'Creating Account...' : 'Create Driver Account'}
+                onPress={handleRegister}
+                loading={loading}
+                disabled={loading}
+                variant="accent"
+                style={styles.registerBtn}
+              />
 
-              {/* Sign In link */}
               <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.linkRow}>
-                <Text style={styles.linkText}>Already have an account?  </Text>
-                <Text style={[styles.linkText, styles.link]}>Sign In →</Text>
+                <Text style={styles.linkText}>Already have an account? </Text>
+                <Text style={styles.link}>Sign In →</Text>
               </TouchableOpacity>
-            </View>
+              </GlassView>
+            </Animated.View>
 
             <Text style={styles.footerText}>TransitIQ Driver Portal v1.0</Text>
           </View>
@@ -258,9 +333,8 @@ const styles = StyleSheet.create({
     width: 80, height: 80, borderRadius: 22,
     justifyContent: 'center', alignItems: 'center',
     marginBottom: SPACING.md,
-    ...SHADOWS.card,
+    ...SHADOWS.glow,
   },
-  logoEmoji: { fontSize: 40 },
   title: {
     fontSize: TYPOGRAPHY.sizes['3xl'],
     fontWeight: TYPOGRAPHY.weights.bold,
@@ -270,12 +344,13 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: TYPOGRAPHY.sizes.md, color: COLORS.textSecondary, textAlign: 'center' },
 
   card: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.card,
+    borderColor: GLASS.borderSubtle,
+    overflow: 'hidden',
+  },
+  cardGlass: {
+    padding: SPACING.xl,
     gap: SPACING.md,
   },
 
@@ -285,31 +360,22 @@ const styles = StyleSheet.create({
     fontWeight: TYPOGRAPHY.weights.semibold,
     color: COLORS.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
-  input: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm + 4,
-    color: COLORS.textPrimary,
-    fontSize: TYPOGRAPHY.sizes.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...(isWeb ? { outlineStyle: 'none' } : {}),
-  },
-  inputError: { borderColor: COLORS.danger },
-  errorText:  { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.danger },
-
-  passwordRow: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceLight,
     borderRadius: RADIUS.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
   },
+  inputFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: GLASS.inputBgFocus,
+  },
+  inputError: { borderColor: COLORS.danger },
+  inputIcon: { marginRight: SPACING.sm },
   passwordInput: {
     flex: 1,
     paddingVertical: SPACING.sm + 4,
@@ -318,13 +384,32 @@ const styles = StyleSheet.create({
     ...(isWeb ? { outlineStyle: 'none' } : {}),
   },
   eyeBtn:  { padding: SPACING.xs },
-  eyeIcon: { fontSize: 18 },
+  errorText:  { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.danger },
+
+  strengthSection: {
+    gap: SPACING.xs,
+  },
+  strengthBar: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  strengthSegment: {
+    flex: 1,
+    height: 3,
+    borderRadius: 1.5,
+  },
+  strengthLabel: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
 
   hintBox: {
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: GLASS.bgLight,
     borderRadius: RADIUS.sm,
     padding: SPACING.sm + 4,
-    gap: 4,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: GLASS.borderSubtle,
   },
   hintTitle: {
     fontSize: TYPOGRAPHY.sizes.xs,
@@ -333,6 +418,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   hintItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  hintText: {
     fontSize: TYPOGRAPHY.sizes.xs,
     color: COLORS.textMuted,
   },
@@ -340,22 +430,11 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
 
-  registerBtn: {
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.sm,
-  },
-  registerBtnText: {
-    color: COLORS.textPrimary,
-    fontSize: TYPOGRAPHY.sizes.lg,
-    fontWeight: TYPOGRAPHY.weights.bold,
-    letterSpacing: 1,
-  },
+  registerBtn: { marginTop: SPACING.sm },
 
-  linkRow:  { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xs },
+  linkRow: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xs },
   linkText: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  link:     { color: COLORS.primaryLight, fontWeight: TYPOGRAPHY.weights.semibold },
+  link:     { color: COLORS.primaryLight, fontWeight: TYPOGRAPHY.weights.semibold, fontSize: TYPOGRAPHY.sizes.sm },
 
   footerText: {
     textAlign: 'center',

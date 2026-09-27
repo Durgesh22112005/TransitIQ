@@ -7,6 +7,8 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme
 import { useAuth } from '../context/AuthContext';
 import { tripAPI } from '../services/api.service';
 import SearchBar from '../components/SearchBar';
+import LiveMap from '../components/LiveMap';
+import useMultiBusTracking from '../hooks/useMultiBusTracking';
 
 const QUICK_DEST = [
   { id: 'a', icon: '✈️', label: 'Airport', color: COLORS.primary },
@@ -91,6 +93,11 @@ const HomeScreen = ({ navigation }) => {
       .finally(() => setLoadingTrips(false));
   }, []);
 
+  const primaryTrip = activeTrips.length > 0 ? activeTrips[0] : null;
+  const activeTripIds = activeTrips.map((t) => t.id);
+  const { busLocations, connectionStatus } = useMultiBusTracking(activeTripIds);
+  const busLocation = primaryTrip ? busLocations[primaryTrip.id] || null : null;
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
@@ -122,63 +129,115 @@ const HomeScreen = ({ navigation }) => {
             <ActivityIndicator size="small" color={COLORS.primary} />
           </View>
         ) : activeTrips.length > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Live Now</Text>
-              <View style={styles.liveCountBadge}>
-                <Text style={styles.liveCountText}>{activeTrips.length} active</Text>
+          <View style={styles.splitLayout}>
+            <View style={styles.leftColumn}>
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Live Now</Text>
+                  <View style={styles.liveCountBadge}>
+                    <Text style={styles.liveCountText}>{activeTrips.length} active</Text>
+                  </View>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.activeTripsRow}
+                >
+                  {activeTrips.map((t) => (
+                    <ActiveTripCard
+                      key={t.id}
+                      trip={t}
+                      onPress={() => navigation.navigate('TripTracker', { tripId: t.id })}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Quick Destinations</Text>
+                <View style={styles.quickGrid}>
+                  {QUICK_DEST.map((d) => (
+                    <TouchableOpacity
+                      key={d.id}
+                      style={styles.quickItem}
+                      onPress={() => navigation.navigate('RouteSearch', { query: d.label })}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={[d.color + '22', d.color + '0A']}
+                        style={[styles.quickIcon, { borderColor: d.color + '40' }]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      >
+                        <Text style={styles.quickEmoji}>{d.icon}</Text>
+                      </LinearGradient>
+                      <Text style={styles.quickLabel}>{d.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.activeTripsRow}
-            >
-              {activeTrips.map((t) => (
-                <ActiveTripCard
-                  key={t.id}
-                  trip={t}
-                  onPress={() => navigation.navigate('TripTracker', { tripId: t.id })}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Destinations</Text>
-          <View style={styles.quickGrid}>
-            {QUICK_DEST.map((d) => (
-              <TouchableOpacity
-                key={d.id}
-                style={styles.quickItem}
-                onPress={() => navigation.navigate('RouteSearch', { query: d.label })}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={[d.color + '22', d.color + '0A']}
-                  style={[styles.quickIcon, { borderColor: d.color + '40' }]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            <View style={styles.rightColumn}>
+              <LiveMap
+                busLocations={busLocations}
+                route={primaryTrip?.route}
+                height={400}
+                style={styles.splitMap}
+              />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Destinations</Text>
+            <View style={styles.quickGrid}>
+              {QUICK_DEST.map((d) => (
+                <TouchableOpacity
+                  key={d.id}
+                  style={styles.quickItem}
+                  onPress={() => navigation.navigate('RouteSearch', { query: d.label })}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.quickEmoji}>{d.icon}</Text>
-                </LinearGradient>
-                <Text style={styles.quickLabel}>{d.label}</Text>
+                  <LinearGradient
+                    colors={[d.color + '22', d.color + '0A']}
+                    style={[styles.quickIcon, { borderColor: d.color + '40' }]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  >
+                    <Text style={styles.quickEmoji}>{d.icon}</Text>
+                  </LinearGradient>
+                  <Text style={styles.quickLabel}>{d.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {!loadingTrips && activeTrips.length === 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Popular Routes</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('RouteSearch')}>
+                <Text style={styles.seeAll}>See All →</Text>
               </TouchableOpacity>
+            </View>
+            {FEATURED_ROUTES.map((r) => (
+              <RouteCard key={r.id} route={r} onPress={() => navigation.navigate('RouteSearch', { query: r.routeNo })} />
             ))}
           </View>
-        </View>
+        )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Popular Routes</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('RouteSearch')}>
-              <Text style={styles.seeAll}>See All →</Text>
-            </TouchableOpacity>
+        {loadingTrips || activeTrips.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Popular Routes</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('RouteSearch')}>
+                <Text style={styles.seeAll}>See All →</Text>
+              </TouchableOpacity>
+            </View>
+            {FEATURED_ROUTES.map((r) => (
+              <RouteCard key={r.id} route={r} onPress={() => navigation.navigate('RouteSearch', { query: r.routeNo })} />
+            ))}
           </View>
-          {FEATURED_ROUTES.map((r) => (
-            <RouteCard key={r.id} route={r} onPress={() => navigation.navigate('RouteSearch', { query: r.routeNo })} />
-          ))}
-        </View>
+        ) : null}
 
         <View style={{ height: SPACING.xl }} />
       </ScrollView>
@@ -209,6 +268,11 @@ const styles = StyleSheet.create({
   scroll:       { flex: 1 },
   scrollContent:{ padding: SPACING.lg, paddingTop: SPACING.lg },
 
+  splitLayout:  { flexDirection: 'row', gap: SPACING.md, alignItems: 'flex-start' },
+  leftColumn:   { flex: 1, minWidth: 0 },
+  rightColumn:  { width: '48%', maxWidth: 400 },
+  splitMap:     { height: 400 },
+
   section:        { marginBottom: SPACING.xl },
   sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
   sectionTitle: {
@@ -225,7 +289,6 @@ const styles = StyleSheet.create({
   },
   liveCountText: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.success, fontWeight: TYPOGRAPHY.weights.bold },
 
-  // Active trips — horizontal scroll cards
   activeTripsRow: { gap: SPACING.md, paddingRight: SPACING.xl },
   activeCard: { width: 240, borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOWS.card },
   activeCardGrad: { padding: SPACING.md, gap: SPACING.xs, borderWidth: 1, borderColor: COLORS.success + '3D', borderRadius: RADIUS.lg },
@@ -247,7 +310,6 @@ const styles = StyleSheet.create({
   activeMetaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.surface + '66' },
   activeMeta: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
 
-  // Quick destinations
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   quickItem: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, width: '48%', flexGrow: 1 },
   quickIcon: {
@@ -258,7 +320,6 @@ const styles = StyleSheet.create({
   quickEmoji: { fontSize: 24 },
   quickLabel: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary, fontWeight: TYPOGRAPHY.weights.medium },
 
-  // Popular routes
   routeCard: {
     flexDirection: 'row',
     alignItems: 'center',

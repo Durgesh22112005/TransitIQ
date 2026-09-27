@@ -25,18 +25,29 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        <Stack.Screen name="Splash"     component={SplashScreen} />
-        <Stack.Screen name="Login"      component={LoginScreen} />
-        <Stack.Screen name="Register"   component={RegisterScreen} />
-        <Stack.Screen name="MainTabs"   component={MainTabs} />
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: COLORS.background },
+        }}
+      >
+        <Stack.Screen name="Splash"   component={SplashScreen} />
+        <Stack.Screen name="Login"    component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="MainTabs" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
 });
 
 export default AppNavigator;

@@ -3,10 +3,11 @@ const app    = require('./src/app');
 const prisma = require('./src/config/db');
 const { PORT } = require('./src/config/env');
 const setupSocket = require('./src/socket');
+const simulator = require('./src/services/simulator');
 
 const server = http.createServer(app);
 
-setupSocket(server);
+const io = setupSocket(server);
 
 const startServer = async () => {
   try {
@@ -17,6 +18,7 @@ const startServer = async () => {
       console.log(`TransitIQ API running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`Health check: http://localhost:${PORT}/health`);
+      simulator.start(io);
     });
   } catch (error) {
     console.error('Failed to start server:', error.message);
@@ -26,3 +28,8 @@ const startServer = async () => {
 };
 
 startServer();
+
+process.on('SIGINT', () => {
+  simulator.stop();
+  prisma.$disconnect().finally(() => process.exit(0));
+});

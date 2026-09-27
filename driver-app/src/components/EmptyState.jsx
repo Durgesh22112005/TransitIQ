@@ -1,18 +1,41 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { COLORS, TYPOGRAPHY, SPACING, ANIMATION } from '../constants/theme';
 import Button from './Button';
 
-const EmptyState = ({ icon, title, message, actionLabel, onAction }) => (
-  <View style={styles.container}>
-    <Text style={styles.icon}>{icon || '📭'}</Text>
-    <Text style={styles.title}>{title}</Text>
-    {message && <Text style={styles.message}>{message}</Text>}
-    {actionLabel && onAction && (
-      <Button title={actionLabel} onPress={onAction} variant="outline" style={styles.button} />
-    )}
-  </View>
-);
+const EmptyState = ({ icon, title, message, actionLabel, onAction }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.9)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: ANIMATION.fadeInSlow,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: ANIMATION.fadeInSlow,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.container, { opacity, transform: [{ scale }] }]}>
+      <View style={styles.iconWrap}>
+        <Text style={styles.icon}>{icon || '📭'}</Text>
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      {message && <Text style={styles.message}>{message}</Text>}
+      {actionLabel && onAction && (
+        <Button title={actionLabel} onPress={onAction} variant="outline" size="sm" style={styles.button} />
+      )}
+    </Animated.View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -22,7 +45,16 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
     gap: SPACING.sm,
   },
-  icon: { fontSize: 56, marginBottom: SPACING.sm },
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  icon: { fontSize: 32 },
   title: {
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.bold,

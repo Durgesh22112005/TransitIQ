@@ -24,7 +24,7 @@ const DriverCard = ({ driver, user }) => {
           <Text style={styles.name}>{user?.name || 'Driver'}</Text>
           <Text style={styles.email}>{user?.email || ''}</Text>
         </View>
-        <StatusBadge label={driver.status} color={statusColor} />
+        <StatusBadge label={driver.status} color={statusColor} pulse={driver.status === 'ACTIVE'} />
       </View>
 
       <View style={styles.details}>
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: TYPOGRAPHY.weights.bold,
-    color: COLORS.textPrimary,
+    color: COLORS.textWhite,
   },
   headerInfo: { flex: 1 },
   name: {
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: SPACING.xs,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border + '44',
+    borderBottomColor: COLORS.borderLight,
   },
   detailLabel: {
     fontSize: TYPOGRAPHY.sizes.sm,

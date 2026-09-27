@@ -1,30 +1,63 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, StatusBar,
+  RefreshControl, Alert, StatusBar, Animated, Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, GRADIENTS, GLASS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api.service';
 import Card from '../components/Card';
+import GlassView from '../components/GlassView';
+import GlassBackground from '../components/GlassBackground';
 import TripCard from '../components/TripCard';
 import { LoadingSpinner } from '../components/LoadingOverlay';
 import EmptyState from '../components/EmptyState';
 import tripService from '../services/TripService';
 
-const StatCard = ({ icon, label, value, color }) => (
-  <View style={[styles.statCard, { borderLeftColor: color || COLORS.primary }]}>
-    <Text style={styles.statIcon}>{icon}</Text>
-    <Text style={[styles.statValue, { color: color || COLORS.primary }]}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+};
+
+const StatCard = ({ icon, label, value, color, index }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        delay: 200 + index * ANIMATION.staggerDelay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        delay: 200 + index * ANIMATION.staggerDelay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.statCard, { opacity, transform: [{ translateY }], borderLeftColor: color || COLORS.primary }]}>
+      <Ionicons name={icon} size={18} color={color || COLORS.primary} />
+      <Text style={[styles.statValue, { color: color || COLORS.primary }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+};
 
 const InfoRow = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
-    <Text style={styles.infoIcon}>{icon}</Text>
+    <Ionicons name={icon} size={16} color={COLORS.textMuted} style={styles.infoIcon} />
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value || '—'}</Text>
@@ -39,6 +72,9 @@ const DriverDashboard = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
+
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-20)).current;
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -68,6 +104,19 @@ const DriverDashboard = ({ navigation }) => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchProfile();
       fetchTrip();
+      Animated.parallel([
+        Animated.timing(headerFade, {
+          toValue: 1,
+          duration: ANIMATION.fadeIn,
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerSlide, {
+          toValue: 0,
+          duration: ANIMATION.slideUp,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
     return unsubscribe;
   }, [navigation, fetchProfile, fetchTrip]);
@@ -159,6 +208,7 @@ const DriverDashboard = ({ navigation }) => {
   }
 
   return (
+    <GlassBackground>
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <ScrollView
@@ -169,60 +219,72 @@ const DriverDashboard = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
+            tintColor={COLORS.primaryLight}
             colors={[COLORS.primary]}
           />
         }
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
+          colors={GRADIENTS.header}
           style={styles.header}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <View style={styles.headerTop}>
+          <Animated.View style={[styles.headerTop, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
             <View style={styles.headerInfo}>
-              <Text style={styles.headerGreeting}>Good Morning</Text>
+              <Text style={styles.headerGreeting}>{getGreeting()}</Text>
               <Text style={styles.headerName}>{authUser?.name || 'Driver'}</Text>
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('MainTabs', { screen: 'Profile' })}
               style={styles.avatar}
+              activeOpacity={0.8}
             >
               <Text style={styles.avatarText}>
                 {authUser?.name?.[0]?.toUpperCase() || 'D'}
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
-          <View style={styles.statusRow}>
-            <View style={styles.statusBadge}>
+          <Animated.View style={[styles.statusRow, { opacity: headerFade }]}>
+            <GlassView intensity={20} tint="dark" style={[styles.statusBadge, { backgroundColor: hasActiveTrip ? 'rgba(16,185,129,0.2)' : 'rgba(148,163,184,0.15)' }]}>
               <View style={[styles.statusDot, { backgroundColor: hasActiveTrip ? COLORS.success : COLORS.textMuted }]} />
               <Text style={styles.statusText}>{hasActiveTrip ? 'On Trip' : 'Available'}</Text>
-            </View>
+            </GlassView>
             {trip?.route && (
-              <Text style={styles.routeBadge}>{trip.route.routeNo}</Text>
+              <GlassView intensity={20} tint="dark" style={styles.routeBadge}>
+                <Ionicons name="bus" size={12} color={COLORS.textWhite} />
+                <Text style={styles.routeBadgeText}>{trip.route.routeNo}</Text>
+              </GlassView>
             )}
-          </View>
+          </Animated.View>
         </LinearGradient>
 
-        <Card padding={SPACING.md}>
+        <Card padding={SPACING.md} delay={100}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Driver Profile</Text>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="person" size={16} color={COLORS.primaryLight} />
+              <Text style={styles.cardTitle}>Driver Profile</Text>
+            </View>
           </View>
-          <InfoRow icon="👤" label="Name" value={profile?.name} />
-          <InfoRow icon="📧" label="Email" value={profile?.email} />
-          <InfoRow icon="📱" label="Phone" value={profile?.phone || 'Not provided'} />
+          <InfoRow icon="person-outline" label="Name" value={profile?.name} />
+          <InfoRow icon="mail-outline" label="Email" value={profile?.email} />
+          <InfoRow icon="call-outline" label="Phone" value={profile?.phone || 'Not provided'} />
           {driver && (
             <>
-              <InfoRow icon="🪪" label="License" value={driver.licenseNo} />
-              <InfoRow icon="📅" label="Experience" value={driver.experience ? `${driver.experience} years` : '—'} />
+              <InfoRow icon="card-outline" label="License" value={driver.licenseNo} />
+              <InfoRow icon="calendar-outline" label="Experience" value={driver.experience ? `${driver.experience} years` : '—'} />
             </>
           )}
         </Card>
 
-        <Card padding={SPACING.md}>
+        <Card padding={SPACING.md} delay={180}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Assigned Bus</Text>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="bus" size={16} color={COLORS.primaryLight} />
+              <Text style={styles.cardTitle}>Assigned Bus</Text>
+            </View>
             {driver?.assignedBus && (
               <View style={styles.busBadge}>
                 <Text style={styles.busBadgeText}>{driver.assignedBus.regNo}</Text>
@@ -231,9 +293,9 @@ const DriverDashboard = ({ navigation }) => {
           </View>
           {driver?.assignedBus ? (
             <>
-              <InfoRow icon="🚌" label="Registration" value={driver.assignedBus.regNo} />
-              <InfoRow icon="🏷️" label="Model" value={driver.assignedBus.model} />
-              <InfoRow icon="👥" label="Capacity" value={`${driver.assignedBus.capacity} seats`} />
+              <InfoRow icon="bus-outline" label="Registration" value={driver.assignedBus.regNo} />
+              <InfoRow icon="pricetag-outline" label="Model" value={driver.assignedBus.model} />
+              <InfoRow icon="people-outline" label="Capacity" value={`${driver.assignedBus.capacity} seats`} />
             </>
           ) : (
             <Text style={styles.mutedText}>No bus assigned</Text>
@@ -248,7 +310,7 @@ const DriverDashboard = ({ navigation }) => {
             starting={startingTrip}
           />
         ) : (
-          <Card padding={SPACING.lg}>
+          <Card padding={SPACING.lg} delay={260}>
             <EmptyState
               icon="📋"
               title="No Trip Assigned"
@@ -258,21 +320,26 @@ const DriverDashboard = ({ navigation }) => {
         )}
 
         {trip && trip.route && (
-          <Card padding={SPACING.md}>
-            <Text style={styles.cardTitle}>Quick Stats</Text>
+          <Card padding={SPACING.md} delay={340}>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="stats-chart" size={16} color={COLORS.primaryLight} />
+              <Text style={styles.cardTitle}>Quick Stats</Text>
+            </View>
             <View style={styles.statsGrid}>
-              <StatCard icon="🚌" label="Trips Today" value="3" color={COLORS.primary} />
+              <StatCard icon="bus" label="Trips Today" value="3" color={COLORS.primary} index={0} />
               <StatCard
-                icon="📍"
+                icon="location"
                 label="Distance"
                 value={trip.route?.distance ? `${trip.route.distance} km` : '—'}
                 color={COLORS.success}
+                index={1}
               />
               <StatCard
-                icon="⏱️"
+                icon="time"
                 label="Duration"
                 value={trip.route?.duration ? `${trip.route.duration} min` : '—'}
                 color={COLORS.warning}
+                index={2}
               />
             </View>
           </Card>
@@ -280,22 +347,26 @@ const DriverDashboard = ({ navigation }) => {
 
         {hasActiveTrip && (
           <TouchableOpacity style={styles.liveBtn} onPress={handleLiveTracking} activeOpacity={0.8}>
-            <Text style={styles.liveBtnIcon}>📍</Text>
+            <View style={styles.liveBtnIconWrap}>
+              <Ionicons name="location" size={18} color={COLORS.primaryLight} />
+            </View>
             <Text style={styles.liveBtnText}>Go to Live Tracking</Text>
-            <Text style={styles.liveBtnArrow}>→</Text>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.primaryLight} />
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: SPACING['3xl'] },
 
@@ -311,6 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  headerInfo: { flex: 1 },
   headerGreeting: {
     fontSize: TYPOGRAPHY.sizes.sm,
     color: 'rgba(255,255,255,0.7)',
@@ -342,23 +414,26 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: SPACING.sm + 4,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
     gap: SPACING.xs,
   },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
   statusText: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textWhite, fontWeight: TYPOGRAPHY.weights.semibold },
   routeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: SPACING.sm + 4,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
+  },
+  routeBadgeText: {
     fontSize: TYPOGRAPHY.sizes.xs,
     color: COLORS.textWhite,
     fontWeight: TYPOGRAPHY.weights.semibold,
-    overflow: 'hidden',
   },
 
   cardHeader: {
@@ -367,24 +442,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xs,
   },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs + 2,
+  },
   cardTitle: {
     fontSize: TYPOGRAPHY.sizes.sm,
     fontWeight: TYPOGRAPHY.weights.bold,
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: SPACING.xs,
   },
 
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.sm - 2,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
   },
-  infoIcon: { fontSize: 18, width: 28 },
+  infoIcon: { width: 20, textAlign: 'center' },
   infoContent: { flex: 1 },
   infoLabel: {
     fontSize: TYPOGRAPHY.sizes.xs,
@@ -407,30 +486,30 @@ const styles = StyleSheet.create({
   },
   busBadgeText: {
     fontSize: TYPOGRAPHY.sizes.xs,
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
     fontWeight: TYPOGRAPHY.weights.bold,
   },
 
   statsGrid: {
     flexDirection: 'row',
     gap: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   statCard: {
     flex: 1,
     backgroundColor: COLORS.surfaceLight,
     borderRadius: RADIUS.md,
-    padding: SPACING.md,
+    padding: SPACING.sm + 2,
     borderLeftWidth: 3,
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
   },
-  statIcon: { fontSize: 20 },
   statValue: {
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.bold,
   },
   statLabel: {
-    fontSize: TYPOGRAPHY.sizes.xs,
+    fontSize: TYPOGRAPHY.sizes.xs - 1,
     color: COLORS.textMuted,
   },
 
@@ -438,24 +517,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.primary + '40',
+    borderColor: COLORS.primary + '30',
     padding: SPACING.md,
     gap: SPACING.sm,
+    ...SHADOWS.subtle,
   },
-  liveBtnIcon: { fontSize: 18 },
+  liveBtnIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primaryBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   liveBtnText: {
     flex: 1,
     fontSize: TYPOGRAPHY.sizes.sm,
     fontWeight: TYPOGRAPHY.weights.semibold,
-    color: COLORS.primary,
-  },
-  liveBtnArrow: {
-    fontSize: TYPOGRAPHY.sizes.lg,
-    color: COLORS.primary,
-    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primaryLight,
   },
 
   mutedText: {
@@ -465,13 +548,16 @@ const styles = StyleSheet.create({
   },
 
   logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
     padding: SPACING.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.danger + '40',
-    alignItems: 'center',
+    borderColor: COLORS.danger + '30',
     backgroundColor: COLORS.surface,
   },
   logoutText: { color: COLORS.danger, fontWeight: TYPOGRAPHY.weights.semibold, fontSize: TYPOGRAPHY.sizes.sm },

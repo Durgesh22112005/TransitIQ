@@ -5,39 +5,73 @@ import {
   ScrollView, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, GRADIENTS, GLASS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
+import GlassView from '../components/GlassView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 const FORM_MAX_WIDTH = 420;
 
-const InputField = ({ label, value, onChangeText, placeholder, error, secure, keyboardType, showPass, onTogglePass, editable }) => (
-  <View style={styles.fieldGroup}>
-    <Text style={styles.fieldLabel}>{label}</Text>
-    <View style={[styles.inputWrapper, error && styles.inputError]}>
-      <TextInput
-        style={styles.input}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.textMuted}
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={secure && !showPass}
-        keyboardType={keyboardType}
-        autoCapitalize="none"
-        autoCorrect={false}
-        editable={editable}
-      />
-      {secure && (
-        <TouchableOpacity onPress={onTogglePass} style={styles.eyeBtn}>
-          <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
-        </TouchableOpacity>
-      )}
+const InputField = ({ label, value, onChangeText, placeholder, error, secure, keyboardType, showPass, onTogglePass, editable, icon }) => {
+  const [focused, setFocused] = useState(false);
+  const borderAnim = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(borderAnim, {
+      toValue: focused ? 1 : error ? 2 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [focused, error]);
+
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [COLORS.border, COLORS.primary, COLORS.danger],
+  });
+
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <GlassView intensity={15} tint="dark" style={[styles.inputWrapper, { borderColor }, focused && styles.inputWrapperFocused]}>
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={18}
+            color={focused ? COLORS.primary : COLORS.textMuted}
+            style={styles.inputIcon}
+          />
+        )}
+        <TextInput
+          style={[styles.input, icon && styles.inputWithIcon]}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textMuted}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secure && !showPass}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={editable}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+        {secure && (
+          <TouchableOpacity onPress={onTogglePass} style={styles.eyeBtn}>
+            <Ionicons
+              name={showPass ? 'eye-off' : 'eye'}
+              size={20}
+              color={COLORS.textMuted}
+            />
+          </TouchableOpacity>
+        )}
+      </GlassView>
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
     </View>
-    {error ? <Text style={styles.fieldError}>{error}</Text> : null}
-  </View>
-);
+  );
+};
 
 const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
@@ -51,11 +85,36 @@ const LoginScreen = ({ navigation }) => {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const cardFade = useRef(new Animated.Value(0)).current;
+  const cardSlide = useRef(new Animated.Value(20)).current;
 
   React.useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.parallel([
+      Animated.timing(cardFade, {
+        toValue: 1,
+        duration: ANIMATION.fadeIn,
+        delay: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardSlide, {
+        toValue: 0,
+        duration: ANIMATION.slideUp,
+        delay: 150,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
@@ -89,7 +148,7 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <LinearGradient colors={[COLORS.background, COLORS.primaryBg]} style={styles.gradient}>
+    <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
@@ -98,24 +157,26 @@ const LoginScreen = ({ navigation }) => {
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.logoSection}>
               <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
+                colors={GRADIENTS.primary}
                 style={styles.logoBox}
               >
-                <Text style={styles.logoEmoji}>🚌</Text>
+                <Ionicons name="bus" size={32} color={COLORS.textWhite} />
               </LinearGradient>
               <Text style={styles.brandName}>TransitIQ</Text>
               <Text style={styles.brandTagline}>Driver Portal</Text>
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Welcome Back</Text>
-              <Text style={styles.cardSubtitle}>Sign in to start your shift</Text>
+            <Animated.View style={[styles.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
+              <GlassView intensity={25} tint="dark" style={styles.cardGlass}>
+                <Text style={styles.cardTitle}>Welcome Back</Text>
+                <Text style={styles.cardSubtitle}>Sign in to start your shift</Text>
 
-              {loginError ? (
-                <View style={styles.errorBanner}>
-                  <Text style={styles.errorBannerText}>{loginError}</Text>
-                </View>
-              ) : null}
+                {loginError ? (
+                  <View style={styles.errorBanner}>
+                    <Ionicons name="alert-circle" size={18} color={COLORS.danger} />
+                    <Text style={styles.errorBannerText}>{loginError}</Text>
+                  </View>
+                ) : null}
 
               <InputField
                 label="Email Address"
@@ -125,6 +186,7 @@ const LoginScreen = ({ navigation }) => {
                 error={errors.email}
                 keyboardType="email-address"
                 editable={!loading}
+                icon="mail-outline"
               />
 
               <InputField
@@ -137,6 +199,7 @@ const LoginScreen = ({ navigation }) => {
                 showPass={showPass}
                 onTogglePass={() => setShowPass((v) => !v)}
                 editable={!loading}
+                icon="lock-closed-outline"
               />
 
               <Button
@@ -151,7 +214,8 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.linkText}>Don't have an account? </Text>
                 <Text style={styles.linkHighlight}>Create Account</Text>
               </TouchableOpacity>
-            </View>
+              </GlassView>
+            </Animated.View>
 
             <Text style={styles.version}>TransitIQ v1.0.0</Text>
           </Animated.View>
@@ -177,9 +241,8 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
     marginBottom: SPACING.md,
-    ...SHADOWS.card,
+    ...SHADOWS.glow,
   },
-  logoEmoji: { fontSize: 34 },
   brandName: {
     fontSize: TYPOGRAPHY.sizes['2xl'],
     fontWeight: TYPOGRAPHY.weights.bold,
@@ -194,12 +257,13 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.card,
+    borderColor: GLASS.borderSubtle,
+    overflow: 'hidden',
+  },
+  cardGlass: {
+    padding: SPACING.lg,
     gap: SPACING.md,
   },
   cardTitle: {
@@ -214,13 +278,17 @@ const styles = StyleSheet.create({
   },
 
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.dangerBg,
     borderRadius: RADIUS.sm,
     padding: SPACING.sm + 4,
     borderWidth: 1,
     borderColor: COLORS.danger + '30',
+    gap: SPACING.sm,
   },
   errorBannerText: {
+    flex: 1,
     fontSize: TYPOGRAPHY.sizes.sm,
     color: COLORS.danger,
     fontWeight: TYPOGRAPHY.weights.medium,
@@ -237,21 +305,25 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceLight,
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
   },
-  inputError: { borderColor: COLORS.danger + '60' },
+  inputWrapperFocused: {
+    backgroundColor: GLASS.inputBgFocus,
+  },
+  inputIcon: {
+    marginRight: SPACING.sm,
+  },
   input: {
     flex: 1,
     paddingVertical: SPACING.sm + 6,
     color: COLORS.textPrimary,
     fontSize: TYPOGRAPHY.sizes.md,
   },
+  inputWithIcon: {},
   eyeBtn: { padding: SPACING.xs },
-  eyeIcon: { fontSize: 18 },
   fieldError: {
     fontSize: TYPOGRAPHY.sizes.xs,
     color: COLORS.danger,
@@ -262,7 +334,7 @@ const styles = StyleSheet.create({
 
   linkRow: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xs },
   linkText: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  linkHighlight: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primary, fontWeight: TYPOGRAPHY.weights.semibold },
+  linkHighlight: { fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primaryLight, fontWeight: TYPOGRAPHY.weights.semibold },
 
   version: {
     textAlign: 'center',

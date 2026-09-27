@@ -20,11 +20,17 @@ export const AuthProvider = ({ children }) => {
         const storedToken = await AsyncStorage.getItem('token');
         const storedUser  = await AsyncStorage.getItem('user');
         if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          // Validate token against server
+          try {
+            await authAPI.getMe();
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          } catch {
+            // Token invalid/expired — clear and redirect to login
+            await AsyncStorage.multiRemove(['token', 'user']);
+          }
         }
       } catch {
-        // invalid stored data – clear it
         await AsyncStorage.multiRemove(['token', 'user']);
       } finally {
         setLoading(false);

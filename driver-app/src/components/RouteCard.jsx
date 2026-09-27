@@ -1,18 +1,8 @@
-// =============================================================
-// src/components/RouteCard.jsx – Driver App
-// Compact card for displaying a route summary
-// =============================================================
-
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import StatusBadge from './StatusBadge';
 
-/**
- * RouteCard
- * @param {object}   route      - Route object from API
- * @param {Function} onPress    - Callback when card is tapped
- */
 const RouteCard = ({ route, onPress }) => {
   const statusColor = {
     ACTIVE:       COLORS.success,
@@ -43,13 +33,13 @@ const RouteCard = ({ route, onPress }) => {
 
       <View style={styles.metaRow}>
         {route.distance && (
-          <Text style={styles.meta}>📍 {route.distance} km</Text>
+          <Text style={styles.meta}>{route.distance} km</Text>
         )}
         {route.duration && (
-          <Text style={styles.meta}>⏱️ {route.duration} min</Text>
+          <Text style={styles.meta}>{route.duration} min</Text>
         )}
         {route._count?.stops !== undefined && (
-          <Text style={styles.meta}>🚏 {route._count.stops} stops</Text>
+          <Text style={styles.meta}>{route._count.stops} stops</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -66,16 +56,16 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
     gap: SPACING.sm,
   },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  routeNo:      { fontSize: TYPOGRAPHY.sizes.xl, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primary },
-  routeName:    { fontSize: TYPOGRAPHY.sizes.md, fontWeight: TYPOGRAPHY.weights.semibold, color: COLORS.textPrimary },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  routeNo: { fontSize: TYPOGRAPHY.sizes.xl, fontWeight: TYPOGRAPHY.weights.black, color: COLORS.primaryLight },
+  routeName: { fontSize: TYPOGRAPHY.sizes.md, fontWeight: TYPOGRAPHY.weights.semibold, color: COLORS.textPrimary },
   endpointsRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  endpoint:     { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
-  dot:          { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  endpoint: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  dot: { width: 7, height: 7, borderRadius: 3.5, flexShrink: 0 },
   endpointText: { flex: 1, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  arrow:        { color: COLORS.textMuted, fontSize: TYPOGRAPHY.sizes.md },
-  metaRow:      { flexDirection: 'row', gap: SPACING.md, flexWrap: 'wrap' },
-  meta:         { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
+  arrow: { color: COLORS.textMuted, fontSize: TYPOGRAPHY.sizes.md },
+  metaRow: { flexDirection: 'row', gap: SPACING.md, flexWrap: 'wrap' },
+  meta: { fontSize: TYPOGRAPHY.sizes.xs, color: COLORS.textMuted },
 });
 
 export default RouteCard;

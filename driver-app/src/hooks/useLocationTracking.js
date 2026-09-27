@@ -5,6 +5,14 @@ import tripService from '../services/TripService';
 
 const LOCATION_EMIT_INTERVAL = 5000;
 
+// Gandhipuram Town Bus Stand, Coimbatore - mock bus location for dev testing
+const DEV_MOCK_LOCATION = {
+  latitude: 11.0168,
+  longitude: 76.9558,
+  speed: 0,
+  heading: 0,
+};
+
 const useLocationTracking = (tripId, driverId, routeId, isActive) => {
   const [location, setLocation] = useState(null);
   const [gpsActive, setGpsActive] = useState(false);
@@ -61,15 +69,14 @@ const useLocationTracking = (tripId, driverId, routeId, isActive) => {
       socketService.connect(driverId, tripId, routeId);
 
       intervalRef.current = setInterval(() => {
-        const currentLoc = locationRef.current;
-        if (socketService.isConnected && currentLoc) {
+        if (socketService.isConnected) {
           socketService.emit('location:update', {
             driverId,
             tripId,
-            latitude: currentLoc.latitude,
-            longitude: currentLoc.longitude,
-            speed: currentLoc.speed,
-            heading: currentLoc.heading,
+            latitude: DEV_MOCK_LOCATION.latitude,
+            longitude: DEV_MOCK_LOCATION.longitude,
+            speed: DEV_MOCK_LOCATION.speed,
+            heading: DEV_MOCK_LOCATION.heading,
             timestamp: new Date().toISOString(),
           });
         }

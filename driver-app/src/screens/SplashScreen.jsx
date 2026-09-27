@@ -1,13 +1,10 @@
-// =============================================================
-// src/screens/SplashScreen.jsx – Driver App
-// =============================================================
-
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, GRADIENTS, TYPOGRAPHY, SPACING, SHADOWS, ANIMATION } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -16,28 +13,74 @@ const SplashScreen = ({ navigation }) => {
   const { user, loading } = useAuth();
   const [animDone, setAnimDone] = React.useState(false);
 
-  // Animation values
   const logoScale   = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
+  const iconRotate  = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
+  const textSlideY  = useRef(new Animated.Value(20)).current;
   const lineWidth   = useRef(new Animated.Value(0)).current;
+  const footerOpacity = useRef(new Animated.Value(0)).current;
+
+  const circleScale = useRef(new Animated.Value(0)).current;
+  const circle2Scale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Sequence: scale logo → fade text → slide line → navigate
+    Animated.parallel([
+      Animated.spring(circleScale, {
+        toValue: 1,
+        tension: 30,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(circle2Scale, {
+        toValue: 1,
+        tension: 30,
+        friction: 7,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     Animated.sequence([
       Animated.parallel([
         Animated.spring(logoScale, {
-          toValue: 1, tension: 80, friction: 6, useNativeDriver: true,
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
         }),
         Animated.timing(logoOpacity, {
-          toValue: 1, duration: 600, useNativeDriver: true,
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconRotate, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
         }),
       ]),
-      Animated.timing(textOpacity, {
-        toValue: 1, duration: 500, delay: 100, useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.timing(textOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(textSlideY, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
       Animated.timing(lineWidth, {
-        toValue: 120, duration: 600, useNativeDriver: false,
+        toValue: 100,
+        duration: 500,
+        useNativeDriver: false,
+      }),
+      Animated.timing(footerOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
       }),
     ]).start(() => {
       setAnimDone(true);
@@ -45,7 +88,7 @@ const SplashScreen = ({ navigation }) => {
 
     const fallback = setTimeout(() => {
       setAnimDone(true);
-    }, 1200);
+    }, 1400);
     return () => clearTimeout(fallback);
   }, []);
 
@@ -55,46 +98,67 @@ const SplashScreen = ({ navigation }) => {
     }
   }, [animDone, loading, user, navigation]);
 
+  const iconSpin = iconRotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-45deg', '0deg'],
+  });
+
   return (
     <LinearGradient
-      colors={[COLORS.background, '#0D1B3E', COLORS.background]}
+      colors={GRADIENTS.background}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      {/* Decorative circles */}
-      <View style={[styles.circle, styles.circleTopRight]} />
-      <View style={[styles.circle, styles.circleBottomLeft]} />
+      <Animated.View
+        style={[
+          styles.circle,
+          styles.circleTopRight,
+          { transform: [{ scale: circleScale }] },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.circle,
+          styles.circleBottomLeft,
+          { transform: [{ scale: circle2Scale }] },
+        ]}
+      />
 
       <View style={styles.content}>
-        {/* Logo mark */}
         <Animated.View
           style={[
             styles.logoContainer,
-            { transform: [{ scale: logoScale }], opacity: logoOpacity },
+            {
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }, { rotate: iconSpin }],
+            },
           ]}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.accent]}
+            colors={GRADIENTS.primary}
             style={styles.logoGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.logoIcon}>🚌</Text>
+            <Ionicons name="bus" size={44} color={COLORS.textWhite} />
           </LinearGradient>
         </Animated.View>
 
-        {/* Brand name */}
-        <Animated.View style={{ opacity: textOpacity, alignItems: 'center' }}>
+        <Animated.View
+          style={{
+            opacity: textOpacity,
+            transform: [{ translateY: textSlideY }],
+            alignItems: 'center',
+          }}
+        >
           <Text style={styles.brandName}>TransitIQ</Text>
           <Text style={styles.brandTagline}>Driver Portal</Text>
-
           <Animated.View style={[styles.accentLine, { width: lineWidth }]} />
         </Animated.View>
       </View>
 
-      {/* Footer */}
-      <Animated.Text style={[styles.footer, { opacity: textOpacity }]}>
+      <Animated.Text style={[styles.footer, { opacity: footerOpacity }]}>
         Intelligent Public Transit
       </Animated.Text>
     </LinearGradient>
@@ -127,17 +191,15 @@ const styles = StyleSheet.create({
     gap: SPACING.lg,
   },
   logoContainer: {
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   logoGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 28,
+    width: 96,
+    height: 96,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  logoIcon: {
-    fontSize: 50,
+    ...SHADOWS.glow,
   },
   brandName: {
     fontSize: TYPOGRAPHY.sizes['4xl'],
@@ -148,14 +210,14 @@ const styles = StyleSheet.create({
   brandTagline: {
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.medium,
-    color: COLORS.accent,
+    color: COLORS.primaryLight,
     letterSpacing: 4,
     textTransform: 'uppercase',
     marginTop: SPACING.xs,
   },
   accentLine: {
     height: 3,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.primaryLight,
     borderRadius: 99,
     marginTop: SPACING.md,
   },

@@ -1,33 +1,58 @@
-// =============================================================
-// src/components/StatusBadge.jsx – Driver App
-// =============================================================
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { COLORS, GLASS, TYPOGRAPHY, SPACING, RADIUS } from '../constants/theme';
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../constants/theme';
+const StatusBadge = ({ label, color = COLORS.primary, pulse = false }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-/**
- * StatusBadge – coloured pill label
- * @param {string} label - text to display
- * @param {string} color - badge accent color (defaults to primary)
- */
-const StatusBadge = ({ label, color = COLORS.primary }) => (
-  <View style={[styles.badge, { backgroundColor: color + '22', borderColor: color + '66' }]}>
-    <View style={[styles.dot, { backgroundColor: color }]} />
-    <Text style={[styles.text, { color }]}>{label}</Text>
-  </View>
-);
+  useEffect(() => {
+    if (!pulse) return;
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.4,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
+
+  return (
+    <View style={[styles.badge, { backgroundColor: color + '15', borderColor: color + '25' }]}>
+      <Animated.View style={[styles.dotWrapper, { transform: [{ scale: pulseAnim }] }]}>
+        <View style={[styles.dot, { backgroundColor: color }]} />
+      </Animated.View>
+      <Text style={[styles.text, { color }]}>{label}</Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
+    paddingHorizontal: SPACING.sm + 2,
+    paddingVertical: 5,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    gap: SPACING.xs,
+    gap: SPACING.xs + 2,
+  },
+  dotWrapper: {
+    width: 8,
+    height: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dot: {
     width: 6,
@@ -37,8 +62,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: TYPOGRAPHY.sizes.xs,
     fontWeight: TYPOGRAPHY.weights.semibold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
 });
 
